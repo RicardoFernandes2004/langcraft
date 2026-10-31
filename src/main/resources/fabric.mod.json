@@ -1,0 +1,24 @@
+{
+	"schemaVersion": 1,
+	"id": "linguacraft",
+	"version": "${version}",
+	"name": "LinguaCraft",
+	"description": "Pratique vocabulário coreano e japonês com os itens do seu inventário. Quem perde os desafios paga caro.",
+	"authors": ["RicardoFernandes2004"],
+	"license": "MIT",
+	"environment": "*",
+	"entrypoints": {
+		"main": ["dev.linguacraft.LinguaCraft"],
+		"client": ["dev.linguacraft.client.LinguaCraftClient"],
+		"modmenu": ["dev.linguacraft.client.compat.ModMenuIntegration"]
+	},
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"modmenu": "*"
+	}
+}

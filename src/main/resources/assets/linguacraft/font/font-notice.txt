@@ -1,0 +1,4 @@
+hangul.ttf is a modified version of Nanum Gothic Bold, reduced to Hangul characters and renamed
+"LinguaCraft Hangul" because the SIL Open Font License reserves the original name.
+Copyright 2011 NHN Corporation. Font designed by Sandoll Communications Inc.
+Licensed under the SIL Open Font License 1.1. See ofl.txt.

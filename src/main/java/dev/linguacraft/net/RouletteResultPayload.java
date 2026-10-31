@@ -1,0 +1,26 @@
+package dev.linguacraft.net;
+
+import dev.linguacraft.LinguaCraft;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+
+public record RouletteResultPayload(int id, int sliceIndex, int spinTicks) implements CustomPacketPayload {
+	public static final Type<RouletteResultPayload> TYPE = new Type<>(LinguaCraft.id("roulette_result"));
+	public static final StreamCodec<FriendlyByteBuf, RouletteResultPayload> CODEC = CustomPacketPayload.codec(RouletteResultPayload::write, RouletteResultPayload::read);
+
+	private static RouletteResultPayload read(FriendlyByteBuf buf) {
+		return new RouletteResultPayload(buf.readVarInt(), buf.readVarInt(), buf.readVarInt());
+	}
+
+	private void write(FriendlyByteBuf buf) {
+		buf.writeVarInt(id);
+		buf.writeVarInt(sliceIndex);
+		buf.writeVarInt(spinTicks);
+	}
+
+	@Override
+	public Type<RouletteResultPayload> type() {
+		return TYPE;
+	}
+}
