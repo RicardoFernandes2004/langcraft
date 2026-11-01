@@ -2,8 +2,6 @@ package dev.langcraft.net;
 
 import dev.langcraft.LangCraft;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /** Pede ao cliente que abra uma tela ou faça algo que só ele consegue, em resposta a um comando. */
 public record OpenScreenPayload(Target target) implements CustomPacketPayload {

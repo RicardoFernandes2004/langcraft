@@ -64,8 +64,8 @@ final class ScreenRequests {
 		for (String language : VoiceSetup.currentLanguages()) {
 			CommunityNames names = GameNames.exportMissing(language);
 			Component file = Component.translatable("langcraft.missing.open").withStyle(Style.EMPTY.withColor(ChatFormatting.YELLOW)
-					.withClickEvent(new ClickEvent.OpenFile(names.file()))
-					.withHoverEvent(new HoverEvent.ShowText(Component.literal(names.file().toString()))));
+					.withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_FILE, names.file().toString()))
+					.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(names.file().toString()))));
 			minecraft.player.displayClientMessage(Component.translatable("langcraft.missing.line",
 					Component.translatable("langcraft.language." + language), names.pending(), file).withStyle(ChatFormatting.GRAY), false);
 		}

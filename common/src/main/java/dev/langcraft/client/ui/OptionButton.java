@@ -29,7 +29,7 @@ final class OptionButton extends ThemedButton {
 	}
 
 	@Override
-	protected void renderContents(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+	public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		UiTheme.Buttons style = UiTheme.current().buttons();
 		if (markedCorrect) {
 			graphics.fill(getX(), getY(), getX() + width, getY() + height, CORRECT_GREEN);

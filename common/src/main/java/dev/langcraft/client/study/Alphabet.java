@@ -42,7 +42,7 @@ public final class Alphabet {
 	}
 
 	public static Group group(String id) {
-		return GROUPS.stream().filter(group -> group.id().equals(id)).findFirst().orElse(GROUPS.getFirst());
+		return GROUPS.stream().filter(group -> group.id().equals(id)).findFirst().orElse(GROUPS.get(0));
 	}
 
 	/** A chave da dica de pronúncia. Nem toda letra tem uma. */

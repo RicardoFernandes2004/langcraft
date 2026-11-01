@@ -66,7 +66,7 @@ public final class LangCommand {
 		dispatcher.register(Commands.literal("lang")
 				.executes(context -> help(context.getSource()))
 				.then(Commands.literal("challenge")
-						.requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+						.requires(source -> source.hasPermission(Commands.LEVEL_GAMEMASTERS))
 						.executes(context -> challenge(context.getSource(), SubjectType.ITEM, null))
 						.then(minigame("speak", SubjectType.ITEM, Minigame.SPEAK))
 						.then(minigame("quiz", SubjectType.ITEM, Minigame.QUIZ))
@@ -85,7 +85,7 @@ public final class LangCommand {
 									return 0;
 								}))))
 				.then(Commands.literal("roulette")
-						.requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+						.requires(source -> source.hasPermission(Commands.LEVEL_GAMEMASTERS))
 						.then(roulette("daily", RouletteStartPayload.Kind.DAILY))
 						.then(roulette("disaster", RouletteStartPayload.Kind.DISASTER))
 						.then(roulette("jackpot", RouletteStartPayload.Kind.JACKPOT)))
@@ -140,7 +140,7 @@ public final class LangCommand {
 
 	private static LiteralArgumentBuilder<CommandSourceStack> toggle(String name, boolean enabled) {
 		return Commands.literal(name)
-				.requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+				.requires(source -> source.hasPermission(Commands.LEVEL_GAMEMASTERS))
 				.executes(context -> setEnabled(context.getSource(), Target.ALL, enabled))
 				.then(Commands.literal("items").executes(context -> setEnabled(context.getSource(), Target.ITEMS, enabled)))
 				.then(Commands.literal("mobs").executes(context -> setEnabled(context.getSource(), Target.MOBS, enabled)));
@@ -150,7 +150,7 @@ public final class LangCommand {
 		source.sendSuccess(() -> Component.literal("✦ LangCraft ✦").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
 		for (HelpGroup group : HELP) {
 			// A lista esconde o que a pessoa não pode usar.
-			if (group.adminOnly() && !Commands.LEVEL_GAMEMASTERS.check(source.permissions())) {
+			if (group.adminOnly() && !source.hasPermission(Commands.LEVEL_GAMEMASTERS)) {
 				continue;
 			}
 			source.sendSuccess(() -> Component.translatable("langcraft.help.group." + group.key()).withStyle(ChatFormatting.AQUA), false);
@@ -182,10 +182,10 @@ public final class LangCommand {
 
 	/** Clicar abre o que não pede mais nada, e nos outros preenche o chat para o jogador completar. */
 	private static Component helpLine(HelpEntry entry) {
-		ClickEvent click = entry.ready() ? new ClickEvent.RunCommand(entry.command()) : new ClickEvent.SuggestCommand(entry.command() + " ");
+		ClickEvent click = entry.ready() ? new ClickEvent(ClickEvent.Action.RUN_COMMAND, entry.command()) : new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, entry.command() + " ");
 		Component hover = entry.ready() ? Component.translatable("langcraft.help.click_run") : Component.translatable("langcraft.help.usage", entry.usage());
 		Component command = Component.literal(entry.command()).withStyle(Style.EMPTY.withColor(ChatFormatting.YELLOW)
-				.withClickEvent(click).withHoverEvent(new HoverEvent.ShowText(hover)));
+				.withClickEvent(click).withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hover)));
 		return Component.literal(" ").append(command)
 				.append(Component.literal(" » ").withStyle(ChatFormatting.DARK_GRAY))
 				.append(Component.translatable("langcraft.help." + entry.key()).withStyle(ChatFormatting.GRAY));

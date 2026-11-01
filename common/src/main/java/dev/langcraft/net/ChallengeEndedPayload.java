@@ -2,8 +2,6 @@ package dev.langcraft.net;
 
 import dev.langcraft.LangCraft;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 public record ChallengeEndedPayload(int id, Outcome outcome, int streak) implements CustomPacketPayload {
 	public enum Outcome {

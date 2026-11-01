@@ -6,7 +6,6 @@ import dev.langcraft.client.ChallengeClient;
 import dev.langcraft.client.ChallengeView;
 import dev.langcraft.client.LangCraftClient;
 import dev.langcraft.client.voice.VoiceRecognizer;
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -33,7 +32,7 @@ public final class SpeakAlertHud {
 		return TOP + BASE_HEIGHT + TALLEST_READING_ROW;
 	}
 
-	public static void render(GuiGraphics graphics, DeltaTracker delta) {
+	public static void render(GuiGraphics graphics, float partialTick) {
 		ChallengeView view = ChallengeClient.current();
 		if (view == null || view.minigame == Minigame.QUIZ) {
 			return;

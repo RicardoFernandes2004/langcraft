@@ -7,13 +7,13 @@ import java.util.function.Predicate;
 import java.util.random.RandomGenerator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
-import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.item.SpawnEggItem;
 
 /** Sorteio do mob por categoria e nascimento em cima do jogador. */
@@ -51,11 +51,11 @@ public final class MobPunishment {
 
 	/** Só entram mobs registrados, com ovo de invocação, e que não somem na dificuldade atual. */
 	public static boolean canSpawn(String mobId, ServerLevel level) {
-		Identifier id = Identifier.tryParse(mobId);
+		ResourceLocation id = ResourceLocation.tryParse(mobId);
 		if (id == null || !BuiltInRegistries.ENTITY_TYPE.containsKey(id)) {
 			return false;
 		}
-		EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getValue(id);
+		EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.get(id);
 		if (SpawnEggItem.byId(type) == null) {
 			return false;
 		}
@@ -63,14 +63,14 @@ public final class MobPunishment {
 	}
 
 	public static void spawnAbove(ServerPlayer player, String mobId) {
-		ServerLevel level = player.level();
-		EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getValue(Identifier.parse(mobId));
-		type.spawn(level, findSpawnPos(player, type), EntitySpawnReason.MOB_SUMMONED);
+		ServerLevel level = player.serverLevel();
+		EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.get(new ResourceLocation(mobId));
+		type.spawn(level, findSpawnPos(player, type), MobSpawnType.MOB_SUMMONED);
 	}
 
 	/** Procura primeiro descendo a partir de cima da cabeça, depois em volta do jogador. */
 	private static BlockPos findSpawnPos(ServerPlayer player, EntityType<?> type) {
-		ServerLevel level = player.level();
+		ServerLevel level = player.serverLevel();
 		BlockPos feet = player.blockPosition();
 		int top = (int) Math.ceil(player.getBoundingBox().maxY) + HEIGHT_ABOVE_HEAD;
 		for (int y = top; y >= feet.getY(); y--) {
@@ -97,6 +97,6 @@ public final class MobPunishment {
 	}
 
 	private static boolean fits(ServerLevel level, EntityType<?> type, BlockPos pos) {
-		return level.noCollision(type.getSpawnAABB(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5));
+		return level.noCollision(type.getAABB(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5));
 	}
 }

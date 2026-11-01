@@ -70,6 +70,7 @@ public final class MicrophoneScreen extends Screen {
 
 	@Override
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics);
 		UiTheme.Palette palette = UiDraw.palette();
 		int panelWidth = Math.min(MAX_BUTTON_WIDTH + 16, width - 4);
 		UiDraw.panel(graphics, (width - panelWidth) / 2, 8, panelWidth, panelBottom - 8);

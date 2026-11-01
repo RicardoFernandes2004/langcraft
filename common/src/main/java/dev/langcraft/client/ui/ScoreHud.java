@@ -7,7 +7,6 @@ import dev.langcraft.client.ChallengeClient;
 import dev.langcraft.client.ChallengeView;
 import dev.langcraft.data.PlayerProgress;
 import dev.langcraft.net.ScorePayload;
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -30,7 +29,7 @@ public final class ScoreHud {
 		return lastBottom;
 	}
 
-	public static void render(GuiGraphics graphics, DeltaTracker delta) {
+	public static void render(GuiGraphics graphics, float partialTick) {
 		Minecraft minecraft = Minecraft.getInstance();
 		ScorePayload score = ChallengeClient.score();
 		lastBottom = 0;

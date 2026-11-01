@@ -109,11 +109,11 @@ public final class QuizScreen extends Screen {
 
 		UiDraw.centered(graphics, font, title, width / 2, top + 8, palette.ink());
 
-		graphics.pose().pushMatrix();
-		graphics.pose().translate(width / 2f - 16, top + 20);
-		graphics.pose().scale(2f, 2f);
+		graphics.pose().pushPose();
+		graphics.pose().translate(width / 2f - 16, top + 20, 0f);
+		graphics.pose().scale(2f, 2f, 1f);
 		graphics.renderItem(view.icon, 0, 0);
-		graphics.pose().popMatrix();
+		graphics.pose().popPose();
 
 		UiDraw.centered(graphics, font, view.nativeName, width / 2, top + 56, palette.accent());
 
@@ -126,7 +126,7 @@ public final class QuizScreen extends Screen {
 	}
 
 	@Override
-	public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+	public void renderBackground(GuiGraphics graphics) {
 		// Sem desfoque: o tempo continua correndo e o jogador precisa ver o que acontece em volta.
 	}
 

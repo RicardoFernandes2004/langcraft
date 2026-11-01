@@ -69,6 +69,7 @@ public final class VoiceSetupScreen extends Screen {
 
 	@Override
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics);
 		UiTheme.Palette palette = UiDraw.palette();
 		int panelWidth = Math.min(MAX_PANEL_WIDTH, width - 4);
 		int panelTop = rowsTop() - 28;

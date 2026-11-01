@@ -2,8 +2,6 @@ package dev.langcraft.net;
 
 import dev.langcraft.LangCraft;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /** O placar que fica sempre na tela. {@code streakGoal} e {@code lossGoal} são 0 com as roletas de cada um desligadas. */
 public record ScorePayload(int streak, int streakGoal, int bestStreak, int totalCorrect, int totalWrong, int lossStreak, int lossGoal, int shields) implements CustomPacketPayload {

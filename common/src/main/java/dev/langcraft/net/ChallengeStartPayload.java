@@ -4,8 +4,6 @@ import dev.langcraft.LangCraft;
 import dev.langcraft.challenge.Minigame;
 import dev.langcraft.challenge.SubjectType;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 public record ChallengeStartPayload(int id, Minigame minigame, SubjectType subjectType, String subject, String language,
 		int durationTicks, int streak, int streakGoal, boolean drawn) implements CustomPacketPayload {

@@ -75,7 +75,7 @@ public final class Microphones {
 		}
 		// No Windows, a primeira entrada é o padrão do sistema, com um nome que muda com o idioma.
 		if (Platform.isWindows() && !devices.isEmpty()) {
-			devices.removeFirst();
+			devices.remove(0);
 		}
 		return devices;
 	}

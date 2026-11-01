@@ -20,9 +20,9 @@ Gere os arquivos de cada versão com `./gradlew build`, na branch indicada.
 | 1.21.11 | NeoForge | `main` | `neoforge/build/libs/langcraft-neoforge-1.21.11-1.0.0.jar` |
 | 1.21.11 | Forge | `main` | `forge/build/libs/langcraft-forge-1.21.11-1.0.0.jar` |
 | 1.20.1 | Fabric | `mc/1.20.1` | `fabric/build/libs/langcraft-fabric-1.20.1-1.0.0.jar` |
-| 1.20.1 | Forge | `mc/1.20.1` | `forge/build/libs/langcraft-forge-1.20.1-1.0.0.jar` |
+| 1.20.1 | Forge | `mc/1.20.1` | `forge/build/release/langcraft-forge-1.20.1-1.0.0.jar` |
 
-Nunca envie o arquivo terminado em `-slim`, que não leva as bibliotecas de voz.
+Nunca envie o arquivo terminado em `-slim`, que não leva as bibliotecas de voz. Na 1.20.1, os outros arquivos de `forge/build/libs` também não servem.
 
 ## Dados da página
 

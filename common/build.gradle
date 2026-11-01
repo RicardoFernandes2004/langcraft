@@ -1,14 +1,12 @@
 plugins {
-	id 'net.neoforged.moddev'
+	id 'fabric-loom'
 }
 
 // Só para compilar e testar. O jogo nunca usa este módulo direto, e sim os módulos de cada loader.
-neoForge {
-	neoFormVersion = neo_form_version
-	addModdingDependenciesTo(sourceSets.test)
-}
-
 dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings loom.officialMojangMappings()
+
 	// O JNA fica de fora porque o Minecraft já traz o dele.
 	implementation("com.alphacephei:vosk:${vosk_version}") { transitive = false }
 	implementation "io.github.givimad:whisper-jni:${whisper_jni_version}"
@@ -16,9 +14,11 @@ dependencies {
 
 	testImplementation "org.junit.jupiter:junit-jupiter:${junit_version}"
 	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
-	testImplementation("com.alphacephei:vosk:${vosk_version}") { transitive = false }
-	testImplementation "io.github.givimad:whisper-jni:${whisper_jni_version}"
-	testImplementation "com.atilika.kuromoji:kuromoji-ipadic:${kuromoji_version}"
+}
+
+// Os testes nunca vão para o jogador, então podem usar o Java do ambiente de desenvolvimento.
+tasks.named('compileTestJava') {
+	options.release = 21
 }
 
 test {

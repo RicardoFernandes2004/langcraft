@@ -2,8 +2,6 @@ package dev.langcraft.net;
 
 import dev.langcraft.LangCraft;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 public record RouletteSpinPayload(int id) implements CustomPacketPayload {
 	public static final Type<RouletteSpinPayload> TYPE = new Type<>(LangCraft.id("roulette_spin"));

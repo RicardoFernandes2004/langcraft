@@ -47,7 +47,7 @@ public final class ModMobs {
 	public static Map<String, String> installed() {
 		Map<String, String> mobs = new LinkedHashMap<>();
 		for (SpawnEggItem egg : SpawnEggItem.eggs()) {
-			EntityType<?> type = egg.getType(new ItemStack(egg));
+			EntityType<?> type = egg.getType(null);
 			var id = BuiltInRegistries.ENTITY_TYPE.getKey(type);
 			if (!id.getNamespace().equals(GAME_NAMESPACE) && DefaultAttributes.hasSupplier(type)) {
 				mobs.put(id.toString(), tierFor(type.getCategory() == MobCategory.MONSTER, maxHealth(type)));

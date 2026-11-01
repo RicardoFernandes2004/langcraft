@@ -5,7 +5,6 @@ import dev.langcraft.client.ChallengeView;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
@@ -30,12 +29,12 @@ public final class TypeAnswerScreen extends Screen {
 	}
 
 	@Override
-	public boolean keyPressed(KeyEvent event) {
-		if (event.key() == GLFW.GLFW_KEY_ENTER || event.key() == GLFW.GLFW_KEY_KP_ENTER) {
+	public boolean keyPressed(int key, int scanCode, int modifiers) {
+		if (key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER) {
 			ChallengeClient.submitTyped(view, box.getValue());
 			return true;
 		}
-		return super.keyPressed(event);
+		return super.keyPressed(key, scanCode, modifiers);
 	}
 
 	@Override
@@ -49,7 +48,7 @@ public final class TypeAnswerScreen extends Screen {
 	}
 
 	@Override
-	public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+	public void renderBackground(GuiGraphics graphics) {
 		// Sem fundo: o jogo e o alerta precisam continuar visíveis.
 	}
 

@@ -1,5 +1,6 @@
 plugins {
 	id 'net.minecraftforge.gradle' version '[7.0.29,8.0)'
+	id 'net.minecraftforge.renamer' version '1.0.14'
 	id 'net.minecraftforge.jarjar' version '0.2.3'
 }
 
@@ -17,8 +18,6 @@ minecraft {
 			args '--nogui'
 		}
 
-		register('gameTestServer')
-
 		register('data') {
 			args '--mod', 'langcraft', '--all', '--output', layout.buildDirectory.dir('datagen').get().asFile
 		}
@@ -31,7 +30,6 @@ repositories {
 	maven fg.minecraftLibsMaven
 }
 
-// O .jar final é o da tarefa jarJar, com as bibliotecas dentro.
 jarJar.register()
 
 tasks.named('jar') {
@@ -39,16 +37,24 @@ tasks.named('jar') {
 }
 
 tasks.named('jarJar') {
-	archiveClassifier = null
+	archiveClassifier = 'mojmap'
+}
+
+// O Forge 1.20.1 roda com outros nomes internos. O arquivo final é o jarJar com os nomes já trocados.
+renamer.classes(tasks.named('jarJar', Jar))
+
+def releaseJar = tasks.register('releaseJar', Copy) {
+	from tasks.named('renameJarJar')
+	into layout.buildDirectory.dir('release')
+	rename { "${base.archivesName.get()}-${project.version}.jar" }
 }
 
 tasks.named('assemble') {
-	dependsOn 'jarJar'
+	dependsOn releaseJar
 }
 
 dependencies {
 	implementation minecraft.dependency("net.minecraftforge:forge:${minecraft_version}-${forge_version}")
-	annotationProcessor 'net.minecraftforge:eventbus-validator:7.0.5'
 
 	[
 		"com.alphacephei:vosk:${vosk_version}",
@@ -60,3 +66,4 @@ dependencies {
 		jarJar(notation) { transitive = false }
 	}
 }
+renamer.mappings(minecraft.dependency.toSrg)

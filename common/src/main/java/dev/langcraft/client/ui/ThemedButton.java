@@ -15,7 +15,7 @@ class ThemedButton extends Button {
 	}
 
 	@Override
-	protected void renderContents(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+	public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		renderBackground(graphics);
 		UiTheme.Buttons style = UiTheme.current().buttons();
 		Font font = Minecraft.getInstance().font;

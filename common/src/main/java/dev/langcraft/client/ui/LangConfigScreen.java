@@ -11,57 +11,83 @@ import java.util.List;
 import java.util.function.IntConsumer;
 import net.minecraft.client.OptionInstance;
 import net.minecraft.client.Options;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.options.OptionsSubScreen;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 /** A tela da engrenagem no Mod Menu e do {@code /lang config}. Salva ao fechar. */
-public final class LangConfigScreen extends OptionsSubScreen {
+public final class LangConfigScreen extends Screen {
 	private static final int SECONDS_PER_MINUTE = 60;
 
+	private final @Nullable Screen parent;
+	private OptionsRows list;
+
 	public LangConfigScreen(@Nullable Screen parent) {
-		super(parent, net.minecraft.client.Minecraft.getInstance().options, Component.translatable("langcraft.config.title"));
+		super(Component.translatable("langcraft.config.title"));
+		this.parent = parent;
 	}
 
 	@Override
-	protected void addOptions() {
+	protected void init() {
 		LangConfig config = LangCraft.config;
+		list = new OptionsRows(minecraft, width, height, 32, height - 32);
 
 		list.addHeader(Component.translatable("langcraft.config.general"));
-		list.addSmall(themeButton(), languageButton());
-		list.addSmall(studyButton(),
-				OptionInstance.createBoolean("langcraft.config.scoreboard", config.showScoreboard, value -> config.showScoreboard = value).createButton(minecraft.options));
-		list.addSmall(OptionInstance.createBoolean("langcraft.config.titles", config.showTitles, value -> config.showTitles = value).createButton(minecraft.options), null);
+		list.addRow(themeButton(), languageButton());
+		list.addRow(studyButton(), option(OptionInstance.createBoolean("langcraft.config.scoreboard", config.showScoreboard, value -> config.showScoreboard = value)));
+		list.addRow(option(OptionInstance.createBoolean("langcraft.config.titles", config.showTitles, value -> config.showTitles = value)), null);
 
 		list.addHeader(Component.translatable("langcraft.config.voice"));
-		list.addSmall(microphoneButton(config), testButton());
-		list.addSmall(
-				range("langcraft.config.similarity", 50, 100, (int) Math.round(config.voiceSimilarity * 100), "langcraft.config.percent", value -> config.voiceSimilarity = value / 100.0),
-				OptionInstance.createBoolean("langcraft.config.furigana", config.showFurigana, value -> config.showFurigana = value));
+		list.addRow(microphoneButton(config), testButton());
+		list.addRow(
+				option(range("langcraft.config.similarity", 50, 100, (int) Math.round(config.voiceSimilarity * 100), "langcraft.config.percent", value -> config.voiceSimilarity = value / 100.0)),
+				option(OptionInstance.createBoolean("langcraft.config.furigana", config.showFurigana, value -> config.showFurigana = value)));
 
 		list.addHeader(Component.translatable("langcraft.config.intervals"));
-		list.addSmall(
-				minutes("langcraft.config.item_min", config.itemIntervalMinSeconds, value -> config.itemIntervalMinSeconds = value),
-				minutes("langcraft.config.item_max", config.itemIntervalMaxSeconds, value -> config.itemIntervalMaxSeconds = value));
-		list.addSmall(
-				minutes("langcraft.config.mob_min", config.mobIntervalMinSeconds, value -> config.mobIntervalMinSeconds = value),
-				minutes("langcraft.config.mob_max", config.mobIntervalMaxSeconds, value -> config.mobIntervalMaxSeconds = value));
+		list.addRow(
+				option(minutes("langcraft.config.item_min", config.itemIntervalMinSeconds, value -> config.itemIntervalMinSeconds = value)),
+				option(minutes("langcraft.config.item_max", config.itemIntervalMaxSeconds, value -> config.itemIntervalMaxSeconds = value)));
+		list.addRow(
+				option(minutes("langcraft.config.mob_min", config.mobIntervalMinSeconds, value -> config.mobIntervalMinSeconds = value)),
+				option(minutes("langcraft.config.mob_max", config.mobIntervalMaxSeconds, value -> config.mobIntervalMaxSeconds = value)));
 
 		list.addHeader(Component.translatable("langcraft.config.times"));
-		list.addSmall(
-				seconds("langcraft.config.speak", 5, 120, config.speakSeconds, value -> config.speakSeconds = value),
-				seconds("langcraft.config.quiz", 5, 120, config.quizSeconds, value -> config.quizSeconds = value));
-		list.addSmall(
-				seconds("langcraft.config.hold", 5, 120, config.holdSeconds, value -> config.holdSeconds = value),
-				seconds("langcraft.config.auto_spin", 3, 60, config.rouletteAutoSpinSeconds, value -> config.rouletteAutoSpinSeconds = value));
+		list.addRow(
+				option(seconds("langcraft.config.speak", 5, 120, config.speakSeconds, value -> config.speakSeconds = value)),
+				option(seconds("langcraft.config.quiz", 5, 120, config.quizSeconds, value -> config.quizSeconds = value)));
+		list.addRow(
+				option(seconds("langcraft.config.hold", 5, 120, config.holdSeconds, value -> config.holdSeconds = value)),
+				option(seconds("langcraft.config.auto_spin", 3, 60, config.rouletteAutoSpinSeconds, value -> config.rouletteAutoSpinSeconds = value)));
 
 		list.addHeader(Component.translatable("langcraft.config.reward"));
-		list.addSmall(
-				OptionInstance.createBoolean("langcraft.config.reward_enabled", config.rewardRouletteEnabled, value -> config.rewardRouletteEnabled = value),
-				range("langcraft.config.reward_streak", 1, 20, config.rewardStreak, "langcraft.config.wins", value -> config.rewardStreak = value));
+		list.addRow(
+				option(OptionInstance.createBoolean("langcraft.config.reward_enabled", config.rewardRouletteEnabled, value -> config.rewardRouletteEnabled = value)),
+				option(range("langcraft.config.reward_streak", 1, 20, config.rewardStreak, "langcraft.config.wins", value -> config.rewardStreak = value)));
+
+		addWidget(list);
+		addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> onClose()).bounds(width / 2 - 100, height - 27, 200, 20).build());
+	}
+
+	private AbstractWidget option(OptionInstance<?> option) {
+		return option.createButton(minecraft.options, 0, 0, OptionsRows.COLUMN_WIDTH);
+	}
+
+	@Override
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics);
+		list.render(graphics, mouseX, mouseY, partialTick);
+		graphics.drawCenteredString(font, title, width / 2, 12, 0xFFFFFFFF);
+		super.render(graphics, mouseX, mouseY, partialTick);
+	}
+
+	@Override
+	public void onClose() {
+		minecraft.setScreen(parent);
 	}
 
 	private Button themeButton() {
@@ -138,7 +164,6 @@ public final class LangConfigScreen extends OptionsSubScreen {
 
 	@Override
 	public void removed() {
-		super.removed();
 		LangCraft.config.save();
 	}
 }

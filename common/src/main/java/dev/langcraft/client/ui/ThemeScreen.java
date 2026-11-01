@@ -6,6 +6,7 @@ import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.Nullable;
@@ -67,7 +68,7 @@ public final class ThemeScreen extends Screen {
 	@Override
 	protected void init() {
 		List<UiTheme> themes = UiTheme.selectable();
-		int rowHeight = Math.clamp((height - TOP - 32) / themes.size() - ROW_GAP, 14, 20);
+		int rowHeight = Mth.clamp((height - TOP - 32) / themes.size() - ROW_GAP, 14, 20);
 		int y = TOP;
 		for (UiTheme theme : themes) {
 			Component name = Component.translatable(nameKey(theme));
@@ -108,6 +109,7 @@ public final class ThemeScreen extends Screen {
 
 	@Override
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics);
 		UiTheme.Palette palette = UiDraw.palette();
 		int plateWidth = Math.min(width - 8, 300);
 		UiDraw.panel(graphics, (width - plateWidth) / 2, 4, plateWidth, PLATE_HEIGHT);

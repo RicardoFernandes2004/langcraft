@@ -17,18 +17,6 @@ loom {
 	}
 }
 
-// Testes que abrem o jogo de verdade: gradlew :fabric:runClientGameTest
-fabricApi {
-	configureTests {
-		createSourceSet = true
-		modId = "langcraft-test"
-		enableGameTests = false
-		enableClientGameTests = true
-		eula = false
-		clearRunDirectory = false
-	}
-}
-
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	mappings loom.officialMojangMappings()
@@ -51,37 +39,4 @@ dependencies {
 	implementation "com.atilika.kuromoji:kuromoji-ipadic:${project.kuromoji_version}"
 	include "com.atilika.kuromoji:kuromoji-ipadic:${project.kuromoji_version}"
 	include "com.atilika.kuromoji:kuromoji-core:${project.kuromoji_version}"
-}
-
-// Roda a mesma bateria com o .jar final, como em uma instalação real: gradlew :fabric:runProductionGameTest
-configurations {
-	productionMods {
-		transitive = false
-	}
-}
-
-dependencies {
-	productionMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-	// O fabric-api publicado não inclui o módulo que executa os testes de cliente.
-	productionMods fabricApi.module("fabric-client-gametest-api-v1", project.fabric_api_version)
-	productionMods "com.terraformersmc:modmenu:${project.modmenu_version}"
-}
-
-def gametestJar = tasks.register("gametestJar", Jar) {
-	from sourceSets.gametest.output
-	archiveClassifier = "gametest-dev"
-}
-
-def remapGametestJar = tasks.register("remapGametestJar", net.fabricmc.loom.task.RemapJarTask) {
-	inputFile = gametestJar.flatMap { it.archiveFile }
-	archiveClassifier = "gametest"
-	addNestedDependencies = false
-}
-
-tasks.register("runProductionGameTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
-	mods.from(remapJar)
-	mods.from(remapGametestJar)
-	mods.from(configurations.productionMods)
-	jvmArgs.add("-Dfabric.client.gametest")
-	runDir = file("build/run/clientProduction")
 }

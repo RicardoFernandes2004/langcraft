@@ -107,7 +107,7 @@ public final class WordListScreen extends NotebookScreen {
 	}
 
 	@Override
-	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+	public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
 		int target = page + (scrollY < 0 ? 1 : -1);
 		if (target >= 0 && target < pageCount()) {
 			changePage(target - page);

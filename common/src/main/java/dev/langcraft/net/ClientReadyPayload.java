@@ -2,8 +2,6 @@ package dev.langcraft.net;
 
 import dev.langcraft.LangCraft;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /** O jogador terminou de escolher o idioma e passou da tela de download. Os desafios podem começar. */
 public record ClientReadyPayload() implements CustomPacketPayload {

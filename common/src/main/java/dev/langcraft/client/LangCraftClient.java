@@ -9,28 +9,25 @@ import dev.langcraft.client.ui.StudyScreen;
 import dev.langcraft.net.ChallengeEndedPayload;
 import dev.langcraft.net.ChallengeStartPayload;
 import dev.langcraft.net.OpenScreenPayload;
+import dev.langcraft.net.Payloads;
 import dev.langcraft.net.RouletteResultPayload;
 import dev.langcraft.net.RouletteStartPayload;
 import dev.langcraft.net.ScorePayload;
 import dev.langcraft.net.VoiceSetupPayload;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import org.lwjgl.glfw.GLFW;
 
 /** O lado do cliente, que é igual em todos os loaders. Eles só avisam quando cada coisa acontece. */
 public final class LangCraftClient {
-	public interface Receivers {
-		<T extends CustomPacketPayload> void receive(CustomPacketPayload.Type<T> type, Consumer<T> handler);
+	public interface HudLayer {
+		void render(GuiGraphics graphics, float partialTick);
 	}
 
-	public interface HudLayer {
-		void render(GuiGraphics graphics, DeltaTracker delta);
-	}
+	private static final String KEY_CATEGORY = "key.category.langcraft.main";
 
 	public static KeyMapping typeAnswerKey;
 	public static KeyMapping studyKey;
@@ -39,21 +36,21 @@ public final class LangCraftClient {
 	}
 
 	/** Cria as teclas e entrega cada uma ao loader. */
-	public static void createKeys(KeyMapping.Category category, Consumer<KeyMapping> register) {
-		typeAnswerKey = new KeyMapping("key.langcraft.type_answer", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_Y, category);
-		studyKey = new KeyMapping("key.langcraft.study", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_K, category);
+	public static void createKeys(Consumer<KeyMapping> register) {
+		typeAnswerKey = new KeyMapping("key.langcraft.type_answer", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_Y, KEY_CATEGORY);
+		studyKey = new KeyMapping("key.langcraft.study", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_K, KEY_CATEGORY);
 		register.accept(typeAnswerKey);
 		register.accept(studyKey);
 	}
 
-	public static void registerReceivers(Receivers receivers) {
-		receivers.receive(ChallengeStartPayload.TYPE, ChallengeClient::onStart);
-		receivers.receive(ChallengeEndedPayload.TYPE, ChallengeClient::onEnded);
-		receivers.receive(RouletteStartPayload.TYPE, ChallengeClient::onRouletteStart);
-		receivers.receive(RouletteResultPayload.TYPE, ChallengeClient::onRouletteResult);
-		receivers.receive(VoiceSetupPayload.TYPE, VoiceSetup::onSetup);
-		receivers.receive(OpenScreenPayload.TYPE, ScreenRequests::onRequest);
-		receivers.receive(ScorePayload.TYPE, ChallengeClient::onScore);
+	public static void registerReceivers() {
+		Payloads.setClientHandler(ChallengeStartPayload.TYPE, ChallengeClient::onStart);
+		Payloads.setClientHandler(ChallengeEndedPayload.TYPE, ChallengeClient::onEnded);
+		Payloads.setClientHandler(RouletteStartPayload.TYPE, ChallengeClient::onRouletteStart);
+		Payloads.setClientHandler(RouletteResultPayload.TYPE, ChallengeClient::onRouletteResult);
+		Payloads.setClientHandler(VoiceSetupPayload.TYPE, VoiceSetup::onSetup);
+		Payloads.setClientHandler(OpenScreenPayload.TYPE, ScreenRequests::onRequest);
+		Payloads.setClientHandler(ScorePayload.TYPE, ChallengeClient::onScore);
 	}
 
 	public static void registerHud(BiConsumer<String, HudLayer> register) {

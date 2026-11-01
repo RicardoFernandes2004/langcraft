@@ -6,8 +6,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerScoreboard;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.scores.DisplaySlot;
 import net.minecraft.world.scores.Objective;
+import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.criteria.ObjectiveCriteria;
 
@@ -80,19 +80,19 @@ final class TitleTeams {
 		Objective objective = scoreboard.getObjective(OBJECTIVE);
 		if (objective == null) {
 			objective = scoreboard.addObjective(OBJECTIVE, ObjectiveCriteria.DUMMY, Component.translatableWithFallback("langcraft.score.ranking", "Correct"),
-					ObjectiveCriteria.RenderType.INTEGER, false, null);
+					ObjectiveCriteria.RenderType.INTEGER);
 		}
 		// Se outro mod ou o dono do servidor já usa o número da lista, ele continua no lugar.
-		if (scoreboard.getDisplayObjective(DisplaySlot.LIST) == null) {
-			scoreboard.setDisplayObjective(DisplaySlot.LIST, objective);
+		if (scoreboard.getDisplayObjective(Scoreboard.DISPLAY_SLOT_LIST) == null) {
+			scoreboard.setDisplayObjective(Scoreboard.DISPLAY_SLOT_LIST, objective);
 		}
-		scoreboard.getOrCreatePlayerScore(player, objective).set(totalCorrect);
+		scoreboard.getOrCreatePlayerScore(player.getScoreboardName(), objective).setScore(totalCorrect);
 	}
 
 	private static void hideScore(ServerScoreboard scoreboard) {
 		Objective objective = scoreboard.getObjective(OBJECTIVE);
-		if (objective != null && scoreboard.getDisplayObjective(DisplaySlot.LIST) == objective) {
-			scoreboard.setDisplayObjective(DisplaySlot.LIST, null);
+		if (objective != null && scoreboard.getDisplayObjective(Scoreboard.DISPLAY_SLOT_LIST) == objective) {
+			scoreboard.setDisplayObjective(Scoreboard.DISPLAY_SLOT_LIST, null);
 		}
 	}
 }

@@ -75,7 +75,7 @@ public final class StudyScreen extends NotebookScreen {
 			sessionDone = reviewed > 0;
 			return;
 		}
-		card = queue.removeFirst();
+		card = queue.remove(0);
 		segments = ChallengeClient.segments(card.word, card.language);
 		icon = GameNames.icon(SubjectType.valueOf(card.type), card.subject);
 	}

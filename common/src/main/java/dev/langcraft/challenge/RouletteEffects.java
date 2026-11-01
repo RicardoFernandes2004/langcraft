@@ -9,7 +9,6 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffect;
@@ -53,7 +52,7 @@ final class RouletteEffects {
 			case LOSE_EVERYTHING -> loseEverything(player);
 			case NEAR_DEATH -> nearDeath(player);
 			case DEATH -> {
-				player.kill(player.level());
+				player.kill();
 				yield true;
 			}
 			case MOB_AMBUSH -> {
@@ -160,22 +159,22 @@ final class RouletteEffects {
 	}
 
 	private static boolean curse(ServerPlayer player) {
-		addEffect(player, MobEffects.SLOWNESS, CURSE_TICKS, 1);
+		addEffect(player, MobEffects.MOVEMENT_SLOWDOWN, CURSE_TICKS, 1);
 		addEffect(player, MobEffects.WEAKNESS, CURSE_TICKS, 1);
-		addEffect(player, MobEffects.MINING_FATIGUE, CURSE_TICKS, 1);
+		addEffect(player, MobEffects.DIG_SLOWDOWN, CURSE_TICKS, 1);
 		addEffect(player, MobEffects.HUNGER, CURSE_TICKS, 0);
 		return true;
 	}
 
 	private static boolean bless(ServerPlayer player) {
-		addEffect(player, MobEffects.HASTE, BLESSING_TICKS, 1);
-		addEffect(player, MobEffects.SPEED, BLESSING_TICKS, 0);
+		addEffect(player, MobEffects.DIG_SPEED, BLESSING_TICKS, 1);
+		addEffect(player, MobEffects.MOVEMENT_SPEED, BLESSING_TICKS, 0);
 		addEffect(player, MobEffects.LUCK, BLESSING_TICKS, 0);
-		addEffect(player, MobEffects.RESISTANCE, BLESSING_TICKS, 0);
+		addEffect(player, MobEffects.DAMAGE_RESISTANCE, BLESSING_TICKS, 0);
 		return true;
 	}
 
-	private static void addEffect(ServerPlayer player, Holder<MobEffect> effect, int ticks, int amplifier) {
+	private static void addEffect(ServerPlayer player, MobEffect effect, int ticks, int amplifier) {
 		player.addEffect(new MobEffectInstance(effect, ticks, amplifier));
 	}
 
@@ -190,7 +189,7 @@ final class RouletteEffects {
 		List<MobPunishment.Tier> chosen = tiers.stream().filter(tier -> names.contains(tier.name())).toList();
 		boolean any = false;
 		for (int i = 0; i < count; i++) {
-			Optional<String> mob = MobPunishment.draw(chosen, id -> MobPunishment.canSpawn(id, player.level()), random);
+			Optional<String> mob = MobPunishment.draw(chosen, id -> MobPunishment.canSpawn(id, player.serverLevel()), random);
 			if (mob.isPresent()) {
 				MobPunishment.spawnAbove(player, mob.get());
 				any = true;

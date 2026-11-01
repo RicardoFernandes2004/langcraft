@@ -11,7 +11,7 @@ import java.util.Optional;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.language.ClientLanguage;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -55,11 +55,11 @@ public final class GameNames {
 	}
 
 	public static ItemStack icon(SubjectType type, String subject) {
-		Identifier id = Identifier.parse(subject);
+		ResourceLocation id = new ResourceLocation(subject);
 		if (type == SubjectType.ITEM) {
-			return new ItemStack(BuiltInRegistries.ITEM.getValue(id));
+			return new ItemStack(BuiltInRegistries.ITEM.get(id));
 		}
-		SpawnEggItem egg = SpawnEggItem.byId(BuiltInRegistries.ENTITY_TYPE.getValue(id));
+		SpawnEggItem egg = SpawnEggItem.byId(BuiltInRegistries.ENTITY_TYPE.get(id));
 		return egg == null ? new ItemStack(Items.BARRIER) : new ItemStack(egg);
 	}
 
@@ -75,7 +75,7 @@ public final class GameNames {
 				}
 			} else {
 				for (SpawnEggItem egg : SpawnEggItem.eggs()) {
-					EntityType<?> entityType = egg.getType(new ItemStack(egg));
+					EntityType<?> entityType = egg.getType(null);
 					translate(language, entityType.getDescriptionId()).ifPresent(names::add);
 				}
 			}
@@ -84,10 +84,10 @@ public final class GameNames {
 	}
 
 	private static String key(SubjectType type, String subject) {
-		Identifier id = Identifier.parse(subject);
+		ResourceLocation id = new ResourceLocation(subject);
 		return type == SubjectType.ITEM
-				? BuiltInRegistries.ITEM.getValue(id).getDescriptionId()
-				: BuiltInRegistries.ENTITY_TYPE.getValue(id).getDescriptionId();
+				? BuiltInRegistries.ITEM.get(id).getDescriptionId()
+				: BuiltInRegistries.ENTITY_TYPE.get(id).getDescriptionId();
 	}
 
 	/** O arquivo dos jogadores vem primeiro, para também dar para corrigir uma tradução ruim de um mod. */
@@ -113,7 +113,7 @@ public final class GameNames {
 			addIfMissing(missing, language, item.getDescriptionId(), english, item != Items.AIR);
 		}
 		for (SpawnEggItem egg : SpawnEggItem.eggs()) {
-			addIfMissing(missing, language, egg.getType(new ItemStack(egg)).getDescriptionId(), english, true);
+			addIfMissing(missing, language, egg.getType(null).getDescriptionId(), english, true);
 		}
 		CommunityNames names = community(language);
 		names.addMissing(missing);

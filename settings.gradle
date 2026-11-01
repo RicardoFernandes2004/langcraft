@@ -16,4 +16,4 @@ plugins {
 
 rootProject.name = 'langcraft'
 
-include 'common', 'fabric', 'neoforge', 'forge'
+include 'common', 'fabric', 'forge'

@@ -2,8 +2,6 @@ package dev.langcraft.net;
 
 import dev.langcraft.LangCraft;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /** Pede ao cliente que prepare o idioma: pergunta qual é, se preciso, e garante o modelo de voz. */
 public record VoiceSetupPayload(boolean chooseLanguage, String language) implements CustomPacketPayload {

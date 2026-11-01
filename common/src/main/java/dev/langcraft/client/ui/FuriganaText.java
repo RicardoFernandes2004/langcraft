@@ -58,10 +58,10 @@ final class FuriganaText {
 	}
 
 	private static void drawScaled(GuiGraphics graphics, Font font, String text, float x, float y, float scale, int color, boolean shadow) {
-		graphics.pose().pushMatrix();
-		graphics.pose().translate(x, y);
-		graphics.pose().scale(scale, scale);
+		graphics.pose().pushPose();
+		graphics.pose().translate(x, y, 0f);
+		graphics.pose().scale(scale, scale, 1f);
 		graphics.drawString(font, text, 0, 0, color, shadow);
-		graphics.pose().popMatrix();
+		graphics.pose().popPose();
 	}
 }

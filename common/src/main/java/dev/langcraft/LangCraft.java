@@ -3,8 +3,9 @@ package dev.langcraft;
 import dev.langcraft.challenge.ChallengeManager;
 import dev.langcraft.config.LangConfig;
 import dev.langcraft.data.PlayerProgress;
+import dev.langcraft.data.ProgressStore;
 import dev.langcraft.platform.Platform;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,8 +28,8 @@ public final class LangCraft {
 		challenges = new ChallengeManager(config);
 	}
 
-	public static Identifier id(String path) {
-		return Identifier.fromNamespaceAndPath(MOD_ID, path);
+	public static ResourceLocation id(String path) {
+		return new ResourceLocation(MOD_ID, path);
 	}
 
 	public static PlayerProgress newProgress() {
@@ -36,10 +37,10 @@ public final class LangCraft {
 	}
 
 	public static PlayerProgress progress(ServerPlayer player) {
-		return platform.progress(player);
+		return ProgressStore.get(player);
 	}
 
 	public static void setProgress(ServerPlayer player, PlayerProgress progress) {
-		platform.setProgress(player, progress);
+		ProgressStore.set(player, progress);
 	}
 }

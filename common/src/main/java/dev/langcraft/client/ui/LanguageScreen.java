@@ -75,6 +75,7 @@ public final class LanguageScreen extends Screen {
 
 	@Override
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics);
 		UiTheme.Palette palette = UiDraw.palette();
 		UiDraw.panel(graphics, (width - PANEL_WIDTH) / 2, height / 2 - PANEL_HALF_HEIGHT, PANEL_WIDTH, PANEL_HALF_HEIGHT * 2);
 		super.render(graphics, mouseX, mouseY, partialTick);

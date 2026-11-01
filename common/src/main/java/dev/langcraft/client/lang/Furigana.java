@@ -89,8 +89,8 @@ public final class Furigana {
 	}
 
 	private static void appendPlain(List<Segment> segments, String text) {
-		if (!segments.isEmpty() && segments.getLast().reading() == null) {
-			segments.set(segments.size() - 1, new Segment(segments.getLast().text() + text, null));
+		if (!segments.isEmpty() && segments.get(segments.size() - 1).reading() == null) {
+			segments.set(segments.size() - 1, new Segment(segments.get(segments.size() - 1).text() + text, null));
 		} else {
 			segments.add(new Segment(text, null));
 		}

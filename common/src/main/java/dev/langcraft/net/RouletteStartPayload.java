@@ -4,8 +4,6 @@ import dev.langcraft.LangCraft;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
  * Nas roletas de itens, {@code amounts} tem a quantidade de cada fatia e {@code effects} fica vazio.

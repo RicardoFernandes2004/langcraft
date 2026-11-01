@@ -74,7 +74,7 @@ public final class AlphabetScreen extends NotebookScreen {
 		this.parent = parent;
 		Alphabet.Group last = Alphabet.group(progress.lastGroup());
 		List<String> available = availableLanguages();
-		this.group = available.contains(last.language()) ? last : Alphabet.groupsOf(available.getFirst()).getFirst();
+		this.group = available.contains(last.language()) ? last : Alphabet.groupsOf(available.get(0)).get(0);
 	}
 
 	/** Os idiomas escolhidos pelo jogador que têm um alfabeto para treinar. */
@@ -138,7 +138,7 @@ public final class AlphabetScreen extends NotebookScreen {
 		Component label = group.language().equals(language) ? Component.literal("✔ ").append(name) : name;
 		addRenderableWidget(new ThemedButton(x, y, TAB_WIDTH, TAB_HEIGHT, label, button -> {
 			if (!group.language().equals(language)) {
-				selectGroup(Alphabet.groupsOf(language).getFirst());
+				selectGroup(Alphabet.groupsOf(language).get(0));
 			}
 		}));
 	}
@@ -174,7 +174,7 @@ public final class AlphabetScreen extends NotebookScreen {
 			question = null;
 			mode = Mode.RESULT;
 		} else {
-			question = queue.removeFirst();
+			question = queue.remove(0);
 			options = AlphabetProgress.options(question, group, OPTION_COUNT, random);
 			showRomajiFirst = random.nextBoolean();
 		}
@@ -312,7 +312,7 @@ public final class AlphabetScreen extends NotebookScreen {
 		}
 
 		@Override
-		protected void renderContents(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
 			renderBackground(graphics);
 			Font font = Minecraft.getInstance().font;
 			UiTheme.Palette palette = UiDraw.palette();

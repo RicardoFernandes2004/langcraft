@@ -1,63 +1,57 @@
 package dev.langcraft.forge;
 
-import dev.langcraft.LangCraft;
+import dev.langcraft.net.CustomPacketPayload;
 import dev.langcraft.net.Payloads;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.Connection;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.network.Channel;
-import net.minecraftforge.network.ChannelBuilder;
-import net.minecraftforge.network.payload.PayloadProtocol;
+import net.minecraftforge.network.NetworkEvent;
+import net.minecraftforge.network.NetworkRegistry;
+import net.minecraftforge.network.PacketDistributor;
+import net.minecraftforge.network.simple.SimpleChannel;
 
 /** Um canal só, opcional, para que quem não tem o mod consiga entrar no servidor. */
 final class ForgeNetwork {
-	private static final int PROTOCOL_VERSION = 1;
-	/** O Forge pede o destino de cada pacote já na criação do canal. No servidor este mapa fica vazio e nunca é consultado. */
-	private static final Map<CustomPacketPayload.Type<?>, Consumer<?>> CLIENT_HANDLERS = new ConcurrentHashMap<>();
-	private static Channel<CustomPacketPayload> channel;
+	private static final String VERSION = "1";
+	private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(Payloads.CHANNEL, () -> VERSION,
+			NetworkRegistry.acceptMissingOr(VERSION), NetworkRegistry.acceptMissingOr(VERSION));
+
+	/** O Forge precisa de uma classe por mensagem, e o tipo verdadeiro do pacote vai dentro dos bytes. */
+	private record Envelope(CustomPacketPayload payload) {
+	}
 
 	private ForgeNetwork() {
 	}
 
-	static Channel<CustomPacketPayload> channel() {
-		return channel;
+	static void init() {
+		CHANNEL.messageBuilder(Envelope.class, 0)
+				.encoder((envelope, buf) -> Payloads.encode(envelope.payload(), buf))
+				.decoder(buf -> new Envelope(Payloads.decode(buf)))
+				.consumerMainThread((envelope, context) -> handle(envelope, context.get()))
+				.add();
 	}
 
-	static <T extends CustomPacketPayload> void setClientHandler(CustomPacketPayload.Type<T> type, Consumer<T> handler) {
-		CLIENT_HANDLERS.put(type, handler);
-	}
-
-	@SuppressWarnings("unchecked")
-	private static <T extends CustomPacketPayload> void handleOnClient(CustomPacketPayload.Type<T> type, T payload) {
-		Consumer<T> handler = (Consumer<T>) CLIENT_HANDLERS.get(type);
-		if (handler != null) {
-			handler.accept(payload);
+	private static void handle(Envelope envelope, NetworkEvent.Context context) {
+		ServerPlayer sender = context.getSender();
+		if (sender != null) {
+			Payloads.handleOnServer(sender, envelope.payload());
+		} else {
+			Payloads.handleOnClient(envelope.payload());
 		}
 	}
 
-	static void init() {
-		PayloadProtocol<RegistryFriendlyByteBuf, CustomPacketPayload> play = ChannelBuilder.named(LangCraft.id("main"))
-				.networkProtocolVersion(PROTOCOL_VERSION)
-				.optional()
-				.payloadChannel()
-				.play();
-		Payloads.register(new Payloads.Registrar() {
-			@Override
-			public <T extends CustomPacketPayload> void toClient(CustomPacketPayload.Type<T> type, StreamCodec<FriendlyByteBuf, T> codec) {
-				play.clientbound().addMain(type, codec.cast(), (payload, context) -> handleOnClient(type, payload));
-			}
+	static boolean isPresent(ServerPlayer player) {
+		return isPresent(player.connection.connection);
+	}
 
-			@Override
-			public <T extends CustomPacketPayload> void toServer(CustomPacketPayload.Type<T> type, StreamCodec<FriendlyByteBuf, T> codec, BiConsumer<ServerPlayer, T> handler) {
-				play.serverbound().addMain(type, codec.cast(), (payload, context) -> handler.accept(context.getSender(), payload));
-			}
-		});
-		channel = play.clientbound().build();
+	static boolean isPresent(Connection connection) {
+		return CHANNEL.isRemotePresent(connection);
+	}
+
+	static void send(ServerPlayer player, CustomPacketPayload payload) {
+		CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new Envelope(payload));
+	}
+
+	static void sendToServer(CustomPacketPayload payload) {
+		CHANNEL.sendToServer(new Envelope(payload));
 	}
 }

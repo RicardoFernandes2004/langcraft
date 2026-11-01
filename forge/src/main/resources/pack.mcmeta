@@ -1,7 +1,6 @@
 {
 	"pack": {
 		"description": "LangCraft resources",
-		"max_format": 94,
-		"min_format": [94, 1]
+		"pack_format": 15
 	}
 }

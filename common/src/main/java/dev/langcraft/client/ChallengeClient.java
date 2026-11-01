@@ -249,8 +249,8 @@ public final class ChallengeClient {
 		}
 		Component key = LangCraftClient.studyKey.getTranslatedKeyMessage().copy().withStyle(ChatFormatting.YELLOW);
 		Component command = Component.literal("/lang").withStyle(Style.EMPTY.withColor(ChatFormatting.YELLOW)
-				.withClickEvent(new ClickEvent.RunCommand("/lang"))
-				.withHoverEvent(new HoverEvent.ShowText(Component.translatable("langcraft.message.welcome.click"))));
+				.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/lang"))
+				.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.translatable("langcraft.message.welcome.click"))));
 		minecraft.player.displayClientMessage(Component.literal("✦ LangCraft ✦").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
 		minecraft.player.displayClientMessage(welcomeLine("langcraft.message.welcome.notebook", key), false);
 		minecraft.player.displayClientMessage(welcomeLine("langcraft.message.welcome.commands", command), false);

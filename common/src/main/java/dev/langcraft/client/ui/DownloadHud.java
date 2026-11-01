@@ -1,7 +1,6 @@
 package dev.langcraft.client.ui;
 
 import dev.langcraft.client.voice.ModelManager;
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -21,7 +20,7 @@ public final class DownloadHud {
 	private DownloadHud() {
 	}
 
-	public static void render(GuiGraphics graphics, DeltaTracker delta) {
+	public static void render(GuiGraphics graphics, float partialTick) {
 		Minecraft minecraft = Minecraft.getInstance();
 		if (minecraft.options.hideGui || minecraft.screen instanceof VoiceSetupScreen) {
 			return;

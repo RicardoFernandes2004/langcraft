@@ -5,8 +5,8 @@ import dev.langcraft.client.study.WorldFlashcards;
 import java.util.Arrays;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.resources.Identifier;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 /** Os visuais do mod. Cada mundo tem o seu, escolhido ao entrar nele pela primeira vez. */
@@ -75,9 +75,9 @@ public enum UiTheme {
 	/** O tema marcado de início na tela de escolha. */
 	public static final UiTheme DEFAULT = CHERRY;
 
-	private static final Identifier VANILLA_BUTTON = Identifier.withDefaultNamespace("widget/button");
-	private static final Identifier VANILLA_BUTTON_HOVER = Identifier.withDefaultNamespace("widget/button_highlighted");
-	private static final Identifier VANILLA_BUTTON_OFF = Identifier.withDefaultNamespace("widget/button_disabled");
+	private static final int VANILLA_BUTTON_OFF_V = 46;
+	private static final int VANILLA_BUTTON_V = 66;
+	private static final int VANILLA_BUTTON_HOVER_V = 86;
 	private static @Nullable UiTheme preview;
 	private static boolean notebook;
 
@@ -185,13 +185,12 @@ public enum UiTheme {
 	}
 
 	void drawButton(GuiGraphics graphics, int x, int y, int width, int height, boolean active, boolean hovered) {
-		Identifier sprite;
 		if (buttonSprites) {
-			sprite = sprite(!active ? "button_off" : hovered ? "button_hover" : "button");
+			blit(graphics, !active ? "button_off" : hovered ? "button_hover" : "button", x, y, width, height);
 		} else {
-			sprite = !active ? VANILLA_BUTTON_OFF : hovered ? VANILLA_BUTTON_HOVER : VANILLA_BUTTON;
+			int v = !active ? VANILLA_BUTTON_OFF_V : hovered ? VANILLA_BUTTON_HOVER_V : VANILLA_BUTTON_V;
+			graphics.blitNineSliced(AbstractWidget.WIDGETS_LOCATION, x, y, width, height, 20, 4, 200, 20, 0, v);
 		}
-		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, width, height);
 	}
 
 	void drawPip(GuiGraphics graphics, boolean filled, int x, int y) {
@@ -203,10 +202,6 @@ public enum UiTheme {
 	}
 
 	final void blit(GuiGraphics graphics, String name, int x, int y, int width, int height) {
-		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite(name), x, y, width, height);
-	}
-
-	private Identifier sprite(String name) {
-		return LangCraft.id("theme/" + id + "/" + name);
+		Sprites.draw(graphics, "theme/" + id + "/" + name, x, y, width, height);
 	}
 }

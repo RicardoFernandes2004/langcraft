@@ -1,5 +1,5 @@
 modLoader = "javafml"
-loaderVersion = "[61,)"
+loaderVersion = "[47,)"
 license = "MIT"
 issueTrackerURL = "https://github.com/RicardoFernandes2004/linguacraft/issues"
 
@@ -15,13 +15,13 @@ description = '''Practice Korean, Japanese, English, German and Spanish vocabula
 [[dependencies.langcraft]]
 modId = "forge"
 mandatory = true
-versionRange = "[61,)"
+versionRange = "[47,)"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.langcraft]]
 modId = "minecraft"
 mandatory = true
-versionRange = "[1.21.11,1.22)"
+versionRange = "[1.20.1,1.21)"
 ordering = "NONE"
 side = "BOTH"

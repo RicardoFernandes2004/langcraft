@@ -47,7 +47,7 @@ public abstract class NotebookScreen extends Screen {
 	 */
 	protected static Component languageFilterLabel(@Nullable String language) {
 		List<String> chosen = VoiceSetup.currentLanguages();
-		String shown = language == null && chosen.size() == 1 ? chosen.getFirst() : language;
+		String shown = language == null && chosen.size() == 1 ? chosen.get(0) : language;
 		Component name = shown == null ? Component.translatable("langcraft.study.all") : Component.translatable("langcraft.language." + shown);
 		return Component.translatable("langcraft.study.filter", name);
 	}
@@ -79,6 +79,7 @@ public abstract class NotebookScreen extends Screen {
 
 	@Override
 	public final void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics);
 		UiTheme.useNotebook(true);
 		try {
 			renderPage(graphics, mouseX, mouseY, partialTick);

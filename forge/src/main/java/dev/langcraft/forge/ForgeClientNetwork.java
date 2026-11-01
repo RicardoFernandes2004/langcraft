@@ -9,6 +9,6 @@ final class ForgeClientNetwork {
 
 	static boolean canSend() {
 		return Minecraft.getInstance().getConnection() != null
-				&& ForgeNetwork.channel().isRemotePresent(Minecraft.getInstance().getConnection().getConnection());
+				&& ForgeNetwork.isPresent(Minecraft.getInstance().getConnection().getConnection());
 	}
 }

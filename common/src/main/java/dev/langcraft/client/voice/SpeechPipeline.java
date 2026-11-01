@@ -127,8 +127,8 @@ public final class SpeechPipeline implements AutoCloseable {
 				return;
 			}
 		}
-		if (!hypotheses.getFirst().isBlank()) {
-			onHeard.accept(hypotheses.getFirst());
+		if (!hypotheses.get(0).isBlank()) {
+			onHeard.accept(hypotheses.get(0));
 		}
 	}
 

@@ -141,6 +141,7 @@ public final class MicTestScreen extends Screen {
 
 	@Override
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics);
 		UiTheme.Palette palette = UiDraw.palette();
 		int centerX = width / 2;
 		int top = Math.max(8, height / 2 - 92);

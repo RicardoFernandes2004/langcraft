@@ -23,7 +23,7 @@ import java.util.UUID;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -244,7 +244,7 @@ public final class ChallengeManager {
 
 	private boolean startMob(ServerPlayer player, PlayerState state, @Nullable Minigame requested) {
 		Optional<String> mob = MobPunishment.draw(mobTiers(),
-				id -> !state.unavailableMobs.contains(id) && MobPunishment.canSpawn(id, player.level()), random);
+				id -> !state.unavailableMobs.contains(id) && MobPunishment.canSpawn(id, player.serverLevel()), random);
 		if (mob.isEmpty()) {
 			return false;
 		}
@@ -428,7 +428,7 @@ public final class ChallengeManager {
 	private void applyDebuff(ServerPlayer player, Consequences.Debuff debuff) {
 		if (debuff.seconds() > 0) {
 			int ticks = debuff.seconds() * TICKS_PER_SECOND;
-			player.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, ticks, debuff.amplifier()));
+			player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, ticks, debuff.amplifier()));
 			player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, ticks, debuff.amplifier()));
 		}
 	}
@@ -436,7 +436,7 @@ public final class ChallengeManager {
 	private void startPunishment(ServerPlayer player, PlayerState state, Item item, int lossStreak) {
 		ItemStack stack = InventoryPicker.firstStack(player, item);
 		if (stack.isEmpty()) {
-			player.sendSystemMessage(Component.translatable("langcraft.message.escaped", item.getName()));
+			player.sendSystemMessage(Component.translatable("langcraft.message.escaped", item.getDescription()));
 			return;
 		}
 		List<Roulette.Slice> slices = Roulette.buildSlices(stack.getCount(), Roulette.harsher(config.rouletteSlices, lossStreak));
@@ -554,13 +554,13 @@ public final class ChallengeManager {
 			int removed = Math.min(amount, stack.getCount());
 			stack.shrink(removed);
 			player.getInventory().setChanged();
-			player.sendSystemMessage(Component.translatable("langcraft.message.lost", removed, item.getName()));
+			player.sendSystemMessage(Component.translatable("langcraft.message.lost", removed, item.getDescription()));
 		}
 	}
 
 	private void giveItems(ServerPlayer player, ItemStack template, int amount) {
 		player.getInventory().placeItemBackInInventory(template.copyWithCount(amount));
-		player.sendSystemMessage(Component.translatable("langcraft.message.gained", amount, template.getItem().getName()));
+		player.sendSystemMessage(Component.translatable("langcraft.message.gained", amount, template.getItem().getDescription()));
 	}
 
 	/** Morrer ou virar espectador encerra tudo sem punição, inclusive uma roleta em andamento. */
@@ -666,7 +666,7 @@ public final class ChallengeManager {
 		}
 
 		Item item() {
-			return BuiltInRegistries.ITEM.getValue(Identifier.parse(subject));
+			return BuiltInRegistries.ITEM.get(new ResourceLocation(subject));
 		}
 	}
 

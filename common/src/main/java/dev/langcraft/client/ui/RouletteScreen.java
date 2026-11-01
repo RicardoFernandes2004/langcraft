@@ -1,6 +1,8 @@
 package dev.langcraft.client.ui;
 
 import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.math.Axis;
 import dev.langcraft.LangCraft;
 import dev.langcraft.client.ChallengeClient;
 import dev.langcraft.net.RouletteSpinPayload;
@@ -11,19 +13,17 @@ import java.util.Random;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
 
 /** As roletas de punição e de recompensa. O resultado vem do servidor, e aqui só é mostrado. */
 public final class RouletteScreen extends Screen {
-	private static final Identifier WHEEL_TEXTURE = LangCraft.id("dynamic/roulette");
+	private static final ResourceLocation WHEEL_TEXTURE = LangCraft.id("dynamic/roulette");
 	private static final int TEXTURE_SIZE = 512;
 	private static final int SPIN_TURNS = 5;
 	private static final int RESULT_DISPLAY_TICKS = 50;
@@ -53,7 +53,7 @@ public final class RouletteScreen extends Screen {
 	public RouletteScreen(RouletteStartPayload payload) {
 		super(Component.translatable("langcraft.roulette." + payload.kind().name().toLowerCase(Locale.ROOT) + "_title"));
 		this.payload = payload;
-		this.icon = new ItemStack(BuiltInRegistries.ITEM.getValue(Identifier.parse(payload.item())));
+		this.icon = new ItemStack(BuiltInRegistries.ITEM.get(new ResourceLocation(payload.item())));
 		this.ticksUntilAutoSpin = payload.autoSpinTicks();
 		List<Integer> weights = payload.weights();
 		this.sliceStarts = new int[weights.size()];
@@ -81,7 +81,7 @@ public final class RouletteScreen extends Screen {
 	@Override
 	protected void init() {
 		if (texture == null) {
-			texture = new DynamicTexture(() -> "langcraft roulette", paintWheel());
+			texture = new DynamicTexture(paintWheel());
 			texture.upload();
 			minecraft.getTextureManager().register(WHEEL_TEXTURE, texture);
 		}
@@ -109,10 +109,15 @@ public final class RouletteScreen extends Screen {
 						color = hub;
 					}
 				}
-				image.setPixel(x, y, color);
+				image.setPixelRGBA(x, y, toAbgr(color));
 			}
 		}
 		return image;
+	}
+
+	/** As cores do tema são ARGB, e a imagem guarda ABGR. */
+	private static int toAbgr(int argb) {
+		return argb & 0xFF00FF00 | (argb & 0xFF) << 16 | argb >> 16 & 0xFF;
 	}
 
 	private int[] sliceColors() {
@@ -226,6 +231,7 @@ public final class RouletteScreen extends Screen {
 
 	@Override
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		renderBackground(graphics);
 		super.render(graphics, mouseX, mouseY, partialTick);
 		boolean punishment = payload.kind().isBad();
 		UiTheme.Palette palette = UiDraw.palette();
@@ -243,21 +249,23 @@ public final class RouletteScreen extends Screen {
 		float rotation = rotation(partialTick);
 		playPointerClicks(rotation);
 
-		graphics.pose().pushMatrix();
-		graphics.pose().translate(centerX, centerY);
-		graphics.pose().rotate((float) Math.toRadians(rotation));
-		graphics.blit(RenderPipelines.GUI_TEXTURED, WHEEL_TEXTURE, -radius, -radius, 0f, 0f, radius * 2, radius * 2,
+		graphics.pose().pushPose();
+		graphics.pose().translate(centerX, centerY, 0f);
+		graphics.pose().mulPose(Axis.ZP.rotation((float) Math.toRadians(rotation)));
+		RenderSystem.enableBlend();
+		graphics.blit(WHEEL_TEXTURE, -radius, -radius, radius * 2, radius * 2, 0f, 0f,
 				TEXTURE_SIZE, TEXTURE_SIZE, TEXTURE_SIZE, TEXTURE_SIZE);
+		RenderSystem.disableBlend();
 		drawSliceLabels(graphics, radius);
-		graphics.pose().popMatrix();
+		graphics.pose().popPose();
 
 		drawPointer(graphics, centerX, centerY - radius);
 
-		graphics.pose().pushMatrix();
-		graphics.pose().translate(centerX - 12f, centerY - 12f);
-		graphics.pose().scale(1.5f, 1.5f);
+		graphics.pose().pushPose();
+		graphics.pose().translate(centerX - 12f, centerY - 12f, 0f);
+		graphics.pose().scale(1.5f, 1.5f, 1f);
 		graphics.renderItem(icon, 0, 0);
-		graphics.pose().popMatrix();
+		graphics.pose().popPose();
 
 		Component footer = footer();
 		if (footer != null) {
@@ -281,17 +289,17 @@ public final class RouletteScreen extends Screen {
 		for (int i = 0; i < amounts.size(); i++) {
 			float middle = (sliceStarts[i] + payload.weights().get(i) / 2f) * 360f / totalWeight;
 			boolean light = isLight(colors[colorIndex(i, colors.length)]);
-			graphics.pose().pushMatrix();
-			graphics.pose().rotate((float) Math.toRadians(middle));
-			graphics.pose().translate(0, -radius * 0.68f);
-			graphics.pose().rotate((float) Math.toRadians(-middle));
+			graphics.pose().pushPose();
+			graphics.pose().mulPose(Axis.ZP.rotation((float) Math.toRadians(middle)));
+			graphics.pose().translate(0, -radius * 0.68f, 0f);
+			graphics.pose().mulPose(Axis.ZP.rotation((float) Math.toRadians(-middle)));
 			String label = String.valueOf(amounts.get(i));
 			if (!payload.effects().isEmpty()) {
 				label = Component.translatable("langcraft.effect." + payload.effects().get(i)).getString();
-				graphics.pose().scale(EFFECT_LABEL_SCALE, EFFECT_LABEL_SCALE);
+				graphics.pose().scale(EFFECT_LABEL_SCALE, EFFECT_LABEL_SCALE, 1f);
 			}
 			graphics.drawString(font, label, -font.width(label) / 2, -4, light ? 0xFF14110D : UiTheme.CLASSIC.palette().ink(), !light);
-			graphics.pose().popMatrix();
+			graphics.pose().popPose();
 		}
 	}
 
@@ -335,12 +343,12 @@ public final class RouletteScreen extends Screen {
 	}
 
 	@Override
-	public boolean keyPressed(KeyEvent event) {
-		if (event.key() == GLFW.GLFW_KEY_SPACE) {
+	public boolean keyPressed(int key, int scanCode, int modifiers) {
+		if (key == GLFW.GLFW_KEY_SPACE) {
 			requestSpin();
 			return true;
 		}
-		return super.keyPressed(event);
+		return super.keyPressed(key, scanCode, modifiers);
 	}
 
 	@Override
@@ -349,11 +357,6 @@ public final class RouletteScreen extends Screen {
 			minecraft.getTextureManager().release(WHEEL_TEXTURE);
 			texture = null;
 		}
-	}
-
-	@Override
-	public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		renderTransparentBackground(graphics);
 	}
 
 	@Override

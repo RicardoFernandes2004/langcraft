@@ -1,6 +1,6 @@
 # LangCraft
 
-Mod para Fabric, NeoForge e Forge, no Minecraft 1.21.11, que treina vocabulário coreano e japonês com os itens do seu inventário e com os mobs do jogo. Quem perde o desafio perde itens ou recebe um mob em cima da cabeça. Quem mantém uma sequência de acertos gira uma roleta de prêmios.
+Mod para Fabric e Forge, no Minecraft 1.20.1, que treina vocabulário coreano e japonês com os itens do seu inventário e com os mobs do jogo. Quem perde o desafio perde itens ou recebe um mob em cima da cabeça. Quem mantém uma sequência de acertos gira uma roleta de prêmios.
 
 ## Instalação
 
@@ -8,23 +8,18 @@ Use o `.jar` do seu loader e nenhum dos outros.
 
 **Fabric**
 
-1. Instale o [Fabric Loader](https://fabricmc.net/use/installer/) para o Minecraft 1.21.11.
-2. Baixe a [Fabric API](https://modrinth.com/mod/fabric-api) para 1.21.11 e coloque na pasta `mods`.
-3. Coloque `langcraft-fabric-1.21.11-1.0.0.jar` (em `fabric/build/libs`) na mesma pasta.
-4. Opcional: coloque também o [Mod Menu](https://modrinth.com/mod/modmenu) 17.0.1, que adiciona o botão **Mods** e a engrenagem da configuração.
-5. Abra o jogo com o perfil Fabric 1.21.11.
-
-**NeoForge**
-
-1. Instale o [NeoForge](https://neoforged.net/) 21.11 para o Minecraft 1.21.11.
-2. Coloque `langcraft-neoforge-1.21.11-1.0.0.jar` (em `neoforge/build/libs`) na pasta `mods`.
+1. Instale o [Fabric Loader](https://fabricmc.net/use/installer/) para o Minecraft 1.20.1.
+2. Baixe a [Fabric API](https://modrinth.com/mod/fabric-api) para 1.20.1 e coloque na pasta `mods`.
+3. Coloque `langcraft-fabric-1.20.1-1.0.0.jar` (em `fabric/build/libs`) na mesma pasta.
+4. Opcional: coloque também o [Mod Menu](https://modrinth.com/mod/modmenu) 7.2.2, que adiciona o botão **Mods** e a engrenagem da configuração.
+5. Abra o jogo com o perfil Fabric 1.20.1.
 
 **Forge**
 
-1. Instale o [Forge](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.21.11.html) 61 para o Minecraft 1.21.11.
-2. Coloque `langcraft-forge-1.21.11-1.0.0.jar` (em `forge/build/libs`) na pasta `mods`. O arquivo terminado em `-slim` não leva as bibliotecas de voz e não serve para jogar.
+1. Instale o [Forge](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.20.1.html) 47 para o Minecraft 1.20.1.
+2. Coloque `langcraft-forge-1.20.1-1.0.0.jar` (em `forge/build/release`) na pasta `mods`. Os arquivos de `forge/build/libs` são etapas intermediárias e não servem para jogar.
 
-No NeoForge e no Forge, a configuração abre pelo botão **Config** da lista de mods.
+No Forge, a configuração abre pelo botão **Config** da lista de mods.
 
 Funciona em Windows e em Linux de 64 bits (x86-64). No Linux, a opção recomendada é **Entrada do sistema**, que segue o microfone escolhido nas configurações do seu desktop. Os microfones vêm do PulseAudio ou do PipeWire, com os mesmos nomes das configurações do sistema, por meio dos comandos `pactl` e `parec` (pacote `pulseaudio-utils` ou `libpulse`). Sem esses comandos, como em um launcher Flatpak sem acesso a eles, o mod usa o ALSA, que só mostra as placas de som, com nomes como `[plughw:0,0]`.
 
@@ -226,9 +221,11 @@ Chances padrão de mob: inofensivos 40%, neutros 25%, hostis 22%, perigosos 11%,
 
 É preciso ter o Java 21, indicado em `JAVA_HOME`. O ForgeGradle também usa o Java 25 para preparar o Minecraft, e o Gradle baixa essa versão sozinho se ela faltar.
 
-O código fica em quatro módulos. `common` tem tudo o que é igual nos três loaders, e `fabric`, `neoforge` e `forge` têm só a ligação com cada um, por meio da interface `Platform` e dos métodos de `LangCraftClient`. Cada loader compila o código de `common` junto com o seu.
+Esta é a branch `mc/1.20.1`. A versão para Minecraft 1.21.11 fica na `main`.
 
-Gera os três `.jar` e roda os testes:
+O código fica em três módulos. `common` tem tudo o que é igual nos dois loaders, e `fabric` e `forge` têm só a ligação com cada um, por meio da interface `Platform` e dos métodos de `LangCraftClient`. Cada loader compila o código de `common` junto com o seu.
+
+Gera os dois `.jar` e roda os testes:
 
 ```bash
 ./gradlew build
@@ -247,23 +244,7 @@ Abre o jogo em cada loader:
 ```
 
 ```bash
-./gradlew :neoforge:runClient
-```
-
-```bash
 ./gradlew :forge:runClient
 ```
 
-A bateria que abre o jogo e percorre os cenários existe só no Fabric, porque usa a Fabric API:
-
-```bash
-./gradlew :fabric:runClientGameTest
-```
-
-```bash
-./gradlew :fabric:runProductionGameTest
-```
-
-`runClientGameTest` roda no ambiente de desenvolvimento, com capturas de tela em `fabric/build/run/clientGameTest/screenshots`, e `runProductionGameTest` usa o `.jar` final. Eles também baixam os modelos de voz e abrem o microfone por alguns instantes.
-
-Para medir o reconhecimento, coloque amostras em `fabric/build/run/clientGameTest/voice-samples/<idioma>/`, com arquivos `0.wav`, `1.wav` e assim por diante, mais um `expected.txt` com uma resposta por linha. O `runClientGameTest` passa a usá-las.
+A bateria que abre o jogo e percorre os cenários existe só na `main`, porque a API dela não existe no Fabric para 1.20.1.
