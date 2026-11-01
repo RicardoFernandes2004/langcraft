@@ -6,6 +6,13 @@
 			"shift": [0, 0.5],
 			"size": 8,
 			"oversample": 8
+		},
+		{
+			"type": "ttf",
+			"file": "linguacraft:japanese.ttf",
+			"shift": [0, 0.5],
+			"size": 8,
+			"oversample": 8
 		}
 	]
 }

@@ -1,12 +1,10 @@
 package dev.linguacraft.client;
 
-import dev.linguacraft.challenge.HoldTracker;
 import dev.linguacraft.challenge.Minigame;
 import dev.linguacraft.challenge.SubjectType;
 import dev.linguacraft.client.lang.Furigana;
 import dev.linguacraft.client.voice.VoiceRecognizer;
 import java.util.List;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
@@ -15,6 +13,7 @@ public final class ChallengeView {
 	public final int id;
 	public final Minigame minigame;
 	public final SubjectType type;
+	public final String subject;
 	public final String language;
 	public final String word;
 	public final String nativeName;
@@ -29,18 +28,19 @@ public final class ChallengeView {
 	public int correctTicks;
 	public boolean finished;
 	public @Nullable String heard;
-	public boolean wrongItem;
 	public @Nullable VoiceRecognizer voice;
+	/** A última resposta errada, para anotar no flashcard. */
+	@Nullable String lastWrongAnswer;
+	/** Se a última tentativa na fala foi digitada, para separar a escrita da pronúncia. */
+	boolean lastAttemptTyped;
 
-	final HoldTracker wrongHold = new HoldTracker();
-	@Nullable Item lastHeldItem;
-
-	ChallengeView(int id, Minigame minigame, SubjectType type, String language, String word, String nativeName, ItemStack icon,
+	ChallengeView(int id, Minigame minigame, SubjectType type, String subject, String language, String word, String nativeName, ItemStack icon,
 			List<Furigana.Segment> segments, int totalTicks, int streak, int streakGoal) {
 		this.segments = segments;
 		this.id = id;
 		this.minigame = minigame;
 		this.type = type;
+		this.subject = subject;
 		this.language = language;
 		this.word = word;
 		this.nativeName = nativeName;

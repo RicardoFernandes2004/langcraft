@@ -5,8 +5,8 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.List;
 import java.util.Set;
 
-/** Idioma, sequência de acertos e preferências, salvos por jogador. */
-public record PlayerProgress(String language, int streak, boolean itemsEnabled, boolean mobsEnabled, boolean languageChosen) {
+/** Idioma, placar e preferências, salvos por jogador. */
+public record PlayerProgress(String language, int streak, boolean itemsEnabled, boolean mobsEnabled, boolean languageChosen, int bestStreak, int totalCorrect, int totalWrong) {
 	public static final String KOREAN = "ko_kr";
 	public static final String JAPANESE = "ja_jp";
 	public static final String BOTH = "both";
@@ -17,11 +17,14 @@ public record PlayerProgress(String language, int streak, boolean itemsEnabled, 
 			Codec.INT.fieldOf("streak").forGetter(PlayerProgress::streak),
 			Codec.BOOL.fieldOf("itemsEnabled").forGetter(PlayerProgress::itemsEnabled),
 			Codec.BOOL.fieldOf("mobsEnabled").forGetter(PlayerProgress::mobsEnabled),
-			Codec.BOOL.optionalFieldOf("languageChosen", false).forGetter(PlayerProgress::languageChosen)
+			Codec.BOOL.optionalFieldOf("languageChosen", false).forGetter(PlayerProgress::languageChosen),
+			Codec.INT.optionalFieldOf("bestStreak", 0).forGetter(PlayerProgress::bestStreak),
+			Codec.INT.optionalFieldOf("totalCorrect", 0).forGetter(PlayerProgress::totalCorrect),
+			Codec.INT.optionalFieldOf("totalWrong", 0).forGetter(PlayerProgress::totalWrong)
 	).apply(instance, PlayerProgress::new));
 
 	public static PlayerProgress initial(String language) {
-		return new PlayerProgress(language, 0, true, true, false);
+		return new PlayerProgress(language, 0, true, true, false, 0, 0, 0);
 	}
 
 	public static boolean isValidLanguage(String language) {
@@ -34,11 +37,12 @@ public record PlayerProgress(String language, int streak, boolean itemsEnabled, 
 	}
 
 	public PlayerProgress afterWin() {
-		return new PlayerProgress(language, streak + 1, itemsEnabled, mobsEnabled, languageChosen);
+		int newStreak = streak + 1;
+		return new PlayerProgress(language, newStreak, itemsEnabled, mobsEnabled, languageChosen, Math.max(bestStreak, newStreak), totalCorrect + 1, totalWrong);
 	}
 
 	public PlayerProgress afterLoss() {
-		return new PlayerProgress(language, 0, itemsEnabled, mobsEnabled, languageChosen);
+		return new PlayerProgress(language, 0, itemsEnabled, mobsEnabled, languageChosen, bestStreak, totalCorrect, totalWrong + 1);
 	}
 
 	public boolean rewardDue(int goal) {
@@ -46,14 +50,14 @@ public record PlayerProgress(String language, int streak, boolean itemsEnabled, 
 	}
 
 	public PlayerProgress afterReward() {
-		return new PlayerProgress(language, 0, itemsEnabled, mobsEnabled, languageChosen);
+		return new PlayerProgress(language, 0, itemsEnabled, mobsEnabled, languageChosen, bestStreak, totalCorrect, totalWrong);
 	}
 
 	public PlayerProgress withLanguage(String newLanguage) {
-		return new PlayerProgress(newLanguage, streak, itemsEnabled, mobsEnabled, true);
+		return new PlayerProgress(newLanguage, streak, itemsEnabled, mobsEnabled, true, bestStreak, totalCorrect, totalWrong);
 	}
 
 	public PlayerProgress withEnabled(boolean items, boolean mobs) {
-		return new PlayerProgress(language, streak, items, mobs, languageChosen);
+		return new PlayerProgress(language, streak, items, mobs, languageChosen, bestStreak, totalCorrect, totalWrong);
 	}
 }

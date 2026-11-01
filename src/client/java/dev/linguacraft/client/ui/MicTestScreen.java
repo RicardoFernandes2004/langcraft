@@ -22,6 +22,7 @@ import org.jetbrains.annotations.Nullable;
 public final class MicTestScreen extends Screen {
 	private static final float WORD_SCALE = 2f;
 	private static final int BAR_WIDTH = 200;
+	private static final int PANEL_WIDTH = 340;
 	private static final int WRONG_FLASH_TICKS = 16;
 	private static final float LEVEL_FALLOFF = 0.85f;
 	/** Reconhecida com facilidade nos dois idiomas, e o nome é quase igual em coreano e japonês. */
@@ -87,12 +88,8 @@ public final class MicTestScreen extends Screen {
 	@Override
 	protected void init() {
 		int y = height - 30;
-		addRenderableWidget(Button.builder(Component.translatable("linguacraft.test.change_microphone"), button -> changeMicrophone())
-				.bounds(width / 2 - 154, y, 150, 20)
-				.build());
-		continueButton = addRenderableWidget(Button.builder(Component.empty(), button -> advance())
-				.bounds(width / 2 + 4, y, 150, 20)
-				.build());
+		addRenderableWidget(new ThemedButton(width / 2 - 154, y, 150, 20, Component.translatable("linguacraft.test.change_microphone"), button -> changeMicrophone()));
+		continueButton = addRenderableWidget(new ThemedButton(width / 2 + 4, y, 150, 20, Component.empty(), button -> advance()));
 		updateButtons();
 	}
 
@@ -144,34 +141,38 @@ public final class MicTestScreen extends Screen {
 
 	@Override
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		super.render(graphics, mouseX, mouseY, partialTick);
+		UiTheme.Palette palette = UiDraw.palette();
 		int centerX = width / 2;
 		int top = Math.max(8, height / 2 - 92);
-		graphics.drawCenteredString(font, title, centerX, top, UiColors.WHITE);
+		int panelWidth = Math.min(PANEL_WIDTH, width - 4);
+		int textWidth = panelWidth - 16;
+		int wordHeight = FuriganaText.height(font, segments, WORD_SCALE);
+		int wordY = top + 44;
+		int barY = wordY + wordHeight + 20;
+		UiDraw.panel(graphics, centerX - panelWidth / 2, top - 6, panelWidth, barY + 48 - (top - 6));
+		super.render(graphics, mouseX, mouseY, partialTick);
+
+		UiDraw.centered(graphics, font, title, centerX, top, palette.ink());
 		String mic = LinguaCraft.config.microphone;
 		Component micName = mic.equals(Microphones.SYSTEM_DEFAULT) ? Component.translatable(Microphones.defaultLabelKey()) : Component.literal(Microphones.label(mic));
-		graphics.drawCenteredString(font, micName, centerX, top + 12, UiColors.MUTED);
-		graphics.drawCenteredString(font, Component.translatable("linguacraft.test.say",
-				Component.translatable("linguacraft.language." + languages.get(languageIndex))), centerX, top + 30, UiColors.WHITE);
+		UiDraw.centered(graphics, font, UiDraw.fit(font, micName, textWidth), centerX, top + 12, palette.muted());
+		UiDraw.centered(graphics, font, Component.translatable("linguacraft.test.say",
+				Component.translatable("linguacraft.language." + languages.get(languageIndex))), centerX, top + 30, palette.ink());
 
 		int wordWidth = FuriganaText.width(font, segments, WORD_SCALE);
-		int wordY = top + 44;
 		int rowWidth = wordWidth + 22;
 		int rowX = centerX - rowWidth / 2;
-		int wordHeight = FuriganaText.height(font, segments, WORD_SCALE);
 		graphics.renderItem(TEST_ITEM, rowX, wordY + wordHeight - 18);
-		FuriganaText.draw(graphics, font, segments, rowX + 22, wordY, WORD_SCALE, success ? UiColors.GREEN : UiColors.WHITE, true);
-		graphics.drawCenteredString(font, nativeName, centerX, wordY + wordHeight + 4, UiColors.GOLD);
+		FuriganaText.draw(graphics, font, segments, rowX + 22, wordY, WORD_SCALE, success ? palette.green() : palette.ink(), palette.shadow());
+		UiDraw.centered(graphics, font, nativeName, centerX, wordY + wordHeight + 4, palette.accent());
 
-		int barY = wordY + wordHeight + 20;
-		graphics.drawCenteredString(font, Component.translatable("linguacraft.test.level"), centerX, barY, UiColors.MUTED);
-		graphics.fill(centerX - BAR_WIDTH / 2, barY + 11, centerX + BAR_WIDTH / 2, barY + 17, UiColors.TRACK);
-		graphics.fill(centerX - BAR_WIDTH / 2, barY + 11, centerX - BAR_WIDTH / 2 + Math.round(BAR_WIDTH * shownLevel), barY + 17, UiColors.GREEN);
+		UiDraw.centered(graphics, font, Component.translatable("linguacraft.test.level"), centerX, barY, palette.muted());
+		graphics.fill(centerX - BAR_WIDTH / 2, barY + 11, centerX + BAR_WIDTH / 2, barY + 17, palette.track());
+		graphics.fill(centerX - BAR_WIDTH / 2, barY + 11, centerX - BAR_WIDTH / 2 + Math.round(BAR_WIDTH * shownLevel), barY + 17, palette.green());
 
-		graphics.drawCenteredString(font, status(), centerX, barY + 23, statusColor());
+		UiDraw.centered(graphics, font, UiDraw.fit(font, status(), textWidth), centerX, barY + 23, statusColor());
 		if (heard != null) {
-			String text = UiColors.fit(font, Component.translatable("linguacraft.hud.heard", heard), width - 40);
-			graphics.drawCenteredString(font, text, centerX, barY + 35, UiColors.MUTED);
+			UiDraw.centered(graphics, font, UiDraw.fit(font, Component.translatable("linguacraft.hud.heard", heard), textWidth), centerX, barY + 35, palette.muted());
 		}
 	}
 
@@ -186,10 +187,11 @@ public final class MicTestScreen extends Screen {
 	}
 
 	private int statusColor() {
+		UiTheme.Palette palette = UiDraw.palette();
 		if (success) {
-			return UiColors.GREEN;
+			return palette.green();
 		}
-		return wrongFlashTicks > 0 ? UiColors.RED : UiColors.GOLD;
+		return wrongFlashTicks > 0 ? palette.red() : palette.accent();
 	}
 
 	@Override

@@ -20,6 +20,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-The file src/main/resources/assets/linguacraft/font/hangul.ttf is not covered
-by this license. It is licensed under the SIL Open Font License 1.1; see ofl.txt
-and font-notice.txt in the same folder.
+The files hangul.ttf and japanese.ttf in src/main/resources/assets/linguacraft/font/
+are not covered by this license. They are licensed under the SIL Open Font License
+1.1; see ofl.txt and font-notice.txt in the same folder.

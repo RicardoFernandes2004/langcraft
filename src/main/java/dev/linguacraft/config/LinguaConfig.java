@@ -42,6 +42,15 @@ public class LinguaConfig {
 	/** Mostra a leitura em hiragana sobre os kanjis. */
 	public boolean showFurigana = true;
 
+	/** Mostra o placar de sequência, acertos e erros no canto da tela. */
+	public boolean showScoreboard = true;
+
+	/** Mostra o título antes do nome e os acertos na lista do Tab, para todos verem. */
+	public boolean showTitles = true;
+
+	/** Visual do mod. Vazio pergunta na próxima entrada em um mundo. */
+	public String theme = "";
+
 	/** Idioma de quem ainda não escolheu: ko_kr, ja_jp ou both. */
 	public String defaultLanguage = "both";
 

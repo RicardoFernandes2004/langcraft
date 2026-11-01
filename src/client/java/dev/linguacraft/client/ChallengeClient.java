@@ -2,12 +2,17 @@ package dev.linguacraft.client;
 
 import dev.linguacraft.LinguaCraft;
 import dev.linguacraft.challenge.Minigame;
+import dev.linguacraft.challenge.PlayerTitle;
 import dev.linguacraft.challenge.SubjectType;
 import dev.linguacraft.client.lang.Furigana;
 import dev.linguacraft.client.lang.GameNames;
 import dev.linguacraft.client.match.AnswerMatcher;
 import dev.linguacraft.client.match.KanaNormalizer;
 import dev.linguacraft.client.ui.QuizScreen;
+import dev.linguacraft.client.study.AnswerMethod;
+import dev.linguacraft.client.study.FlashcardDeck;
+import dev.linguacraft.client.study.WorldFlashcards;
+import dev.linguacraft.client.ui.NotebookScreen;
 import dev.linguacraft.client.ui.RouletteScreen;
 import dev.linguacraft.client.ui.TypeAnswerScreen;
 import dev.linguacraft.client.voice.VoiceRecognizer;
@@ -17,6 +22,7 @@ import dev.linguacraft.net.ChallengeResultPayload;
 import dev.linguacraft.net.ChallengeStartPayload;
 import dev.linguacraft.net.RouletteResultPayload;
 import dev.linguacraft.net.RouletteStartPayload;
+import dev.linguacraft.net.ScorePayload;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
@@ -24,23 +30,28 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.Style;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 /** Recebe os desafios do servidor, cuida do estado local e avalia as respostas. */
 public final class ChallengeClient {
 	private static final int WRONG_FLASH_TICKS = 16;
 	private static final int CORRECT_DISPLAY_TICKS = 30;
+	private static final float BELL_PITCH = 1.2f;
+	private static final float BELL_VOLUME = 0.7f;
 
 	private static @Nullable ChallengeView current;
+	private static @Nullable ScorePayload score;
 
 	private ChallengeClient() {
 	}
@@ -56,15 +67,17 @@ public final class ChallengeClient {
 			respond(payload.id(), ChallengeResultPayload.Result.UNAVAILABLE);
 			return;
 		}
-		if (payload.minigame() == Minigame.QUIZ && minecraft.screen != null) {
+		// Quem está com o caderno aberto não vê o alerta direito, então nenhum desafio começa por baixo da tela.
+		if (minecraft.screen instanceof NotebookScreen || payload.minigame() == Minigame.QUIZ && minecraft.screen != null) {
 			respond(payload.id(), ChallengeResultPayload.Result.BUSY);
 			return;
 		}
 		endCurrent();
-		ChallengeView view = new ChallengeView(payload.id(), payload.minigame(), payload.subjectType(), payload.language(), word.get(),
+		ChallengeView view = new ChallengeView(payload.id(), payload.minigame(), payload.subjectType(), payload.subject(), payload.language(), word.get(),
 				GameNames.nativeName(payload.subjectType(), payload.subject()), GameNames.icon(payload.subjectType(), payload.subject()),
 				segments(word.get(), payload.language()), payload.durationTicks(), payload.streak(), payload.streakGoal());
 		current = view;
+		play(SoundEvents.NOTE_BLOCK_BELL.value(), BELL_PITCH, BELL_VOLUME);
 		if (view.minigame == Minigame.QUIZ) {
 			minecraft.setScreen(new QuizScreen(view));
 		} else if (view.minigame == Minigame.SPEAK) {
@@ -107,9 +120,11 @@ public final class ChallengeClient {
 	private static void onHeard(ChallengeView view, String text, boolean correct) {
 		if (view == current && !view.finished) {
 			view.heard = text;
+			view.lastAttemptTyped = false;
 			if (correct) {
 				submitCorrect(view);
 			} else {
+				view.lastWrongAnswer = text;
 				flashWrong(view);
 			}
 		}
@@ -120,22 +135,32 @@ public final class ChallengeClient {
 		if (view != current || view.finished) {
 			return false;
 		}
+		view.lastAttemptTyped = true;
 		if (AnswerMatcher.matchesTyped(view.word, text, view.language)) {
 			submitCorrect(view);
 			return true;
 		}
+		view.lastWrongAnswer = text;
 		flashWrong(view);
 		return false;
 	}
 
 	/** Chamado pelo popup quando uma alternativa é escolhida. */
-	public static void submitOption(ChallengeView view, boolean correct) {
+	public static void submitOption(ChallengeView view, boolean correct, String option) {
 		if (view == current && !view.finished) {
 			if (correct) {
 				submitCorrect(view);
 			} else {
+				view.lastWrongAnswer = option;
 				flashWrong(view);
 			}
+		}
+	}
+
+	/** Chamado pelo popup depois de mostrar qual era a alternativa certa. */
+	public static void submitWrong(ChallengeView view) {
+		if (view == current && !view.finished) {
+			respond(view.id, ChallengeResultPayload.Result.WRONG);
 		}
 	}
 
@@ -166,9 +191,11 @@ public final class ChallengeClient {
 				view.streak = payload.streak();
 				view.correctTicks = CORRECT_DISPLAY_TICKS;
 				play(SoundEvents.PLAYER_LEVELUP, 1.4f);
+				recordFlashcard(view, true);
 			}
 			case LOST -> {
 				current = null;
+				recordFlashcard(view, false);
 				showAnswer(minecraft, view);
 				play(SoundEvents.NOTE_BLOCK_DIDGERIDOO.value(), 0.6f);
 				if (view.type == SubjectType.MOB) {
@@ -178,6 +205,55 @@ public final class ChallengeClient {
 			}
 			case CANCELLED -> current = null;
 		}
+	}
+
+	private static void recordFlashcard(ChallengeView view, boolean won) {
+		FlashcardDeck deck = WorldFlashcards.current();
+		if (deck != null) {
+			deck.record(view.language, view.type.name(), view.subject, view.word, view.nativeName, answerMethod(view), won, view.lastWrongAnswer);
+		}
+	}
+
+	/** Sem nenhuma tentativa, o tempo acabou na habilidade que o minigame pedia: falar. */
+	private static AnswerMethod answerMethod(ChallengeView view) {
+		return switch (view.minigame) {
+			case SPEAK -> view.lastAttemptTyped ? AnswerMethod.TYPED : AnswerMethod.SPEAK;
+			case QUIZ -> AnswerMethod.QUIZ;
+			case HOLD -> AnswerMethod.HOLD;
+		};
+	}
+
+	public static @Nullable ScorePayload score() {
+		return score;
+	}
+
+	/** O primeiro placar de cada entrada confirma que o servidor tem o mod, então o aviso sobre o /lingua é verdadeiro. */
+	public static void onScore(ScorePayload payload) {
+		if (score == null) {
+			showWelcome();
+		} else if (LinguaCraft.config.showTitles && PlayerTitle.of(payload.totalCorrect()).ordinal() > PlayerTitle.of(score.totalCorrect()).ordinal()) {
+			play(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+		}
+		score = payload;
+	}
+
+	private static void showWelcome() {
+		Minecraft minecraft = Minecraft.getInstance();
+		if (minecraft.player == null) {
+			return;
+		}
+		Component key = LinguaCraftClient.studyKey.getTranslatedKeyMessage().copy().withStyle(ChatFormatting.YELLOW);
+		Component command = Component.literal("/lingua").withStyle(Style.EMPTY.withColor(ChatFormatting.YELLOW)
+				.withClickEvent(new ClickEvent.RunCommand("/lingua"))
+				.withHoverEvent(new HoverEvent.ShowText(Component.translatable("linguacraft.message.welcome.click"))));
+		minecraft.player.displayClientMessage(Component.literal("✦ LinguaCraft ✦").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
+		minecraft.player.displayClientMessage(welcomeLine("linguacraft.message.welcome.notebook", key), false);
+		minecraft.player.displayClientMessage(welcomeLine("linguacraft.message.welcome.commands", command), false);
+	}
+
+	private static Component welcomeLine(String key, Component highlighted) {
+		return Component.literal(" » ").withStyle(ChatFormatting.GOLD)
+				.append(Component.translatable(key, highlighted).withStyle(ChatFormatting.GRAY));
 	}
 
 	private static void showAnswer(Minecraft minecraft, ChallengeView view) {
@@ -217,28 +293,12 @@ public final class ChallengeClient {
 		if (view.minigame == Minigame.SPEAK && typePressed && minecraft.screen == null) {
 			minecraft.setScreen(new TypeAnswerScreen(view));
 		}
-		if (view.minigame == Minigame.HOLD) {
-			tickHold(minecraft, view);
-		}
-	}
-
-	/** O servidor decide o acerto. Aqui só mostramos o erro de quem segura outro item. */
-	private static void tickHold(Minecraft minecraft, ChallengeView view) {
-		ItemStack held = minecraft.player.getMainHandItem();
-		Item item = held.isEmpty() ? null : held.getItem();
-		if (item != view.lastHeldItem) {
-			view.lastHeldItem = item;
-			view.wrongHold.reset();
-			view.wrongItem = false;
-		}
-		if (view.wrongHold.tick(item != null && !view.icon.is(item))) {
-			view.wrongItem = true;
-			flashWrong(view);
-		}
 	}
 
 	public static void clear() {
 		endCurrent();
+		score = null;
+		WorldFlashcards.clear();
 		GameNames.clear();
 	}
 
@@ -268,5 +328,9 @@ public final class ChallengeClient {
 
 	public static void play(SoundEvent sound, float pitch) {
 		Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(sound, pitch));
+	}
+
+	public static void play(SoundEvent sound, float pitch, float volume) {
+		Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(sound, pitch, volume));
 	}
 }

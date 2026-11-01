@@ -27,8 +27,9 @@ public final class RouletteScreen extends Screen {
 	private static final int TEXTURE_SIZE = 512;
 	private static final int SPIN_TURNS = 5;
 	private static final int RESULT_DISPLAY_TICKS = 50;
-	private static final int[] PUNISHMENT_COLORS = {0xFF4CAF6A, 0xFFE0B23C, 0xFFE58A34, 0xFFD6543C, 0xFF8E1F2B};
-	private static final int[] REWARD_COLORS = {0xFF6FA8DC, 0xFF4CAF6A, 0xFF9CCC4C, 0xFFE0B23C, 0xFFF4D35E};
+	/** Reserva o título em cima e, embaixo, o aviso e o botão, sem que um encoste no outro. */
+	private static final int WHEEL_MARGIN = 84;
+	private static final int PLATE_PADDING = 10;
 
 	private final RouletteStartPayload payload;
 	private final ItemStack icon;
@@ -81,15 +82,14 @@ public final class RouletteScreen extends Screen {
 			texture.upload();
 			minecraft.getTextureManager().register(WHEEL_TEXTURE, texture);
 		}
-		spinButton = addRenderableWidget(Button.builder(Component.translatable("linguacraft.roulette.spin"), button -> requestSpin())
-				.bounds(width / 2 - 50, height - 26, 100, 20)
-				.build());
+		spinButton = addRenderableWidget(new ThemedButton(width / 2 - 50, height - 26, 100, 20, Component.translatable("linguacraft.roulette.spin"), button -> requestSpin()));
 		spinButton.active = !requested && sliceIndex < 0;
 	}
 
 	private NativeImage paintWheel() {
 		NativeImage image = new NativeImage(TEXTURE_SIZE, TEXTURE_SIZE, true);
-		int[] colors = payload.kind() == RouletteStartPayload.Kind.PUNISHMENT ? PUNISHMENT_COLORS : REWARD_COLORS;
+		int[] colors = sliceColors();
+		int hub = UiTheme.current().wheel().hub();
 		double center = (TEXTURE_SIZE - 1) / 2.0;
 		double radius = TEXTURE_SIZE / 2.0 - 1;
 		for (int y = 0; y < TEXTURE_SIZE; y++) {
@@ -102,16 +102,19 @@ public final class RouletteScreen extends Screen {
 					double degrees = (Math.toDegrees(Math.atan2(dx, -dy)) + 360) % 360;
 					int slice = sliceAt(degrees);
 					color = colors[colorIndex(slice, colors.length)];
-					if (distance >= radius - 6 || distance <= radius * 0.24) {
-						color = 0xFF20222A;
-					} else if (isOnBoundary(degrees, distance)) {
-						color = 0xFF20222A;
+					if (distance >= radius - 6 || distance <= radius * 0.24 || isOnBoundary(degrees, distance)) {
+						color = hub;
 					}
 				}
 				image.setPixel(x, y, color);
 			}
 		}
 		return image;
+	}
+
+	private int[] sliceColors() {
+		UiTheme.Wheel wheel = UiTheme.current().wheel();
+		return payload.kind() == RouletteStartPayload.Kind.PUNISHMENT ? wheel.punishment() : wheel.reward();
 	}
 
 	/** Espalha as cores do início ao fim da paleta, para que a última fatia seja sempre a mais extrema. */
@@ -211,12 +214,14 @@ public final class RouletteScreen extends Screen {
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		super.render(graphics, mouseX, mouseY, partialTick);
 		boolean punishment = payload.kind() == RouletteStartPayload.Kind.PUNISHMENT;
+		UiTheme.Palette palette = UiDraw.palette();
+		Component stack = Component.translatable("linguacraft.roulette.stack", payload.stackCount(), icon.getHoverName());
 
-		graphics.drawCenteredString(font, title, width / 2, 8, punishment ? UiColors.RED : UiColors.GOLD);
-		graphics.drawCenteredString(font, Component.translatable("linguacraft.roulette.stack", payload.stackCount(), icon.getHoverName()),
-				width / 2, 20, UiColors.WHITE);
+		plate(graphics, Math.max(font.width(title), font.width(stack)), 3, 29);
+		UiDraw.centered(graphics, font, title, width / 2, 8, punishment ? palette.red() : palette.accent());
+		UiDraw.centered(graphics, font, stack, width / 2, 20, palette.ink());
 
-		int radius = Math.max(40, Math.min((height - 72) / 2, 100));
+		int radius = Math.max(40, Math.min((height - WHEEL_MARGIN) / 2, 100));
 		int centerX = width / 2;
 		int centerY = 36 + radius;
 		float rotation = rotation(partialTick);
@@ -240,27 +245,49 @@ public final class RouletteScreen extends Screen {
 
 		Component footer = footer();
 		if (footer != null) {
-			graphics.drawCenteredString(font, footer, width / 2, centerY + radius + 4, footerColor());
+			int footerY = centerY + radius + 4;
+			plate(graphics, font.width(footer), footerY - 3, 14);
+			UiDraw.centered(graphics, font, footer, width / 2, footerY, footerColor());
+		}
+	}
+
+	/** Temas com fundo claro não dariam leitura direto sobre o mundo escurecido. */
+	private void plate(GuiGraphics graphics, int textWidth, int y, int height) {
+		if (UiTheme.current().textNeedsPlate()) {
+			int plateWidth = textWidth + PLATE_PADDING * 2;
+			UiDraw.plainPanel(graphics, (width - plateWidth) / 2, y, plateWidth, height, UiDraw.PanelState.NORMAL);
 		}
 	}
 
 	private void drawSliceLabels(GuiGraphics graphics, int radius) {
 		List<Integer> amounts = payload.amounts();
+		int[] colors = sliceColors();
 		for (int i = 0; i < amounts.size(); i++) {
 			float middle = (sliceStarts[i] + payload.weights().get(i) / 2f) * 360f / totalWeight;
+			boolean light = isLight(colors[colorIndex(i, colors.length)]);
 			graphics.pose().pushMatrix();
 			graphics.pose().rotate((float) Math.toRadians(middle));
 			graphics.pose().translate(0, -radius * 0.68f);
 			graphics.pose().rotate((float) Math.toRadians(-middle));
-			graphics.drawCenteredString(font, String.valueOf(amounts.get(i)), 0, -4, UiColors.WHITE);
+			String label = String.valueOf(amounts.get(i));
+			graphics.drawString(font, label, -font.width(label) / 2, -4, light ? 0xFF14110D : UiTheme.CLASSIC.palette().ink(), !light);
 			graphics.pose().popMatrix();
 		}
 	}
 
+	private static boolean isLight(int color) {
+		int red = color >> 16 & 0xFF;
+		int green = color >> 8 & 0xFF;
+		int blue = color & 0xFF;
+		return red * 0.299 + green * 0.587 + blue * 0.114 > 150;
+	}
+
 	private void drawPointer(GuiGraphics graphics, int centerX, int tipY) {
+		int color = UiTheme.current().wheel().pointer();
 		for (int row = 0; row < 10; row++) {
 			int halfWidth = 7 - row * 7 / 10;
-			graphics.fill(centerX - halfWidth, tipY - 6 + row, centerX + halfWidth + 1, tipY - 5 + row, UiColors.WHITE);
+			graphics.fill(centerX - halfWidth - 1, tipY - 6 + row, centerX + halfWidth + 2, tipY - 5 + row, 0xFF000000);
+			graphics.fill(centerX - halfWidth, tipY - 6 + row, centerX + halfWidth + 1, tipY - 5 + row, color);
 		}
 	}
 
@@ -277,10 +304,11 @@ public final class RouletteScreen extends Screen {
 	}
 
 	private int footerColor() {
+		UiTheme.Palette palette = UiDraw.palette();
 		if (sliceIndex >= 0 && spinElapsed >= spinTicks) {
-			return payload.kind() == RouletteStartPayload.Kind.PUNISHMENT ? UiColors.RED : UiColors.GREEN;
+			return payload.kind() == RouletteStartPayload.Kind.PUNISHMENT ? palette.red() : palette.green();
 		}
-		return UiColors.MUTED;
+		return palette.muted();
 	}
 
 	@Override

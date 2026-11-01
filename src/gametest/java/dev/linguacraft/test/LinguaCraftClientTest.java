@@ -14,8 +14,14 @@ import dev.linguacraft.client.ui.LinguaConfigScreen;
 import dev.linguacraft.client.ui.MicTestScreen;
 import dev.linguacraft.client.ui.MicrophoneScreen;
 import dev.linguacraft.client.ui.QuizScreen;
+import dev.linguacraft.client.study.WorldFlashcards;
+import dev.linguacraft.client.ui.AlphabetScreen;
 import dev.linguacraft.client.ui.RouletteScreen;
+import dev.linguacraft.client.ui.StudyScreen;
+import dev.linguacraft.client.ui.ThemeScreen;
 import dev.linguacraft.client.ui.TypeAnswerScreen;
+import dev.linguacraft.client.ui.UiTheme;
+import dev.linguacraft.client.ui.WordListScreen;
 import dev.linguacraft.client.ui.VoiceSetupScreen;
 import dev.linguacraft.client.match.AnswerMatcher;
 import dev.linguacraft.client.voice.Microphones;
@@ -26,6 +32,7 @@ import dev.linguacraft.client.voice.SpeechPipeline;
 import dev.linguacraft.config.LinguaConfig;
 import dev.linguacraft.data.PlayerProgress;
 import dev.linguacraft.net.RouletteStartPayload;
+import dev.linguacraft.net.ScorePayload;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -37,6 +44,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.events.ContainerEventHandler;
 import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.resources.language.I18n;
@@ -77,6 +85,7 @@ public class LinguaCraftClientTest implements FabricClientGameTest {
 		config.speakSeconds = 3;
 		config.holdSeconds = 4;
 		config.rouletteAutoSpinSeconds = 2;
+		config.theme = "";
 
 		setupStep("engrenagem do Mod Menu abre a configuracao, que salva", this::modMenuConfig);
 		deleteVoiceModels();
@@ -100,9 +109,12 @@ public class LinguaCraftClientTest implements FabricClientGameTest {
 			command("time set day");
 			command("lingua desligar");
 
+			scenario("comandos no chat abrem as telas", this::chatCommands);
+			scenario("capturas de todas as telas em todos os temas", this::themeScreenshots);
 			scenario("nomes em coreano e japones carregam", this::namesLoad);
 			scenario("furigana sobre os kanjis", this::furiganaShown);
-			scenario("popup: errar nao exclui, acertar nao exclui", this::quizWrongThenRight);
+			scenario("popup: acertar nao exclui", this::quizWrongThenRight);
+			scenario("popup: errar uma vez abre a roleta; placar e flashcards", this::quizWrongPunishes);
 			scenario("popup: tempo acaba, roleta gira com espaco e exclui a fatia", this::quizTimeoutSpace);
 			scenario("roleta: gira com o botao", this::rouletteButton);
 			scenario("roleta: gira sozinha", this::rouletteAutoSpin);
@@ -175,7 +187,23 @@ public class LinguaCraftClientTest implements FabricClientGameTest {
 	}
 
 	private void firstJoinWithFailedDownload() throws Exception {
+		context.waitForScreen(ThemeScreen.class);
+		context.waitTicks(2);
+		context.takeScreenshot("tema-escolha");
+		check(!serverReady(), "escolhendo o tema, os desafios nao comecam");
+		check(UiTheme.current() == UiTheme.DEFAULT, "o tema recomendado vem marcado");
+		context.getInput().pressKey(GLFW.GLFW_KEY_ESCAPE);
+		context.waitTicks(2);
+		check(context.computeOnClient(mc -> mc.screen instanceof ThemeScreen), "Esc nao fecha a primeira escolha de tema");
+		clickButtonContaining("linguacraft.theme.cidade");
+		context.waitTicks(2);
+		check(UiTheme.current() == UiTheme.ANCIENT_CITY, "o tema marcado vale na hora");
+		check(LinguaCraft.config.theme.isEmpty(), "o tema so fica salvo ao confirmar");
+		clickButtonContaining("linguacraft.theme.cerejeira");
+		context.waitTicks(2);
+		clickButtonContaining("linguacraft.theme.confirm");
 		context.waitForScreen(LanguageScreen.class);
+		check(LinguaCraft.config.theme.equals(UiTheme.CHERRY.id()), "o tema escolhido fica salvo");
 		context.waitTicks(2);
 		context.takeScreenshot("idioma-escolha");
 		check(!serverReady(), "sem escolher, os desafios nao comecam");
@@ -272,6 +300,7 @@ public class LinguaCraftClientTest implements FabricClientGameTest {
 		world.close();
 		world = context.worldBuilder().create();
 		context.waitForScreen(LanguageScreen.class);
+		check(context.computeOnClient(mc -> WorldFlashcards.current().size(null)) == 0, "um mundo novo comeca sem flashcards");
 		clickButton(context.computeOnClient(mc -> I18n.get("linguacraft.setup.korean"))::equals);
 		context.waitForScreen(MicrophoneScreen.class);
 		context.waitTicks(1);
@@ -369,6 +398,153 @@ public class LinguaCraftClientTest implements FabricClientGameTest {
 		clickButton(context.computeOnClient(mc -> I18n.get("linguacraft.test.skip"))::equals);
 		context.waitForScreen(LinguaConfigScreen.class);
 		context.setScreen(() -> null);
+	}
+
+	/** Digita no chat, como o jogador, porque o chat se fecha depois de enviar o comando e poderia fechar a tela. */
+	private void chat(String text) {
+		context.getInput().pressKey(options -> options.keyChat);
+		context.waitForScreen(ChatScreen.class);
+		context.getInput().typeChars(text);
+		context.getInput().pressKey(GLFW.GLFW_KEY_ENTER);
+		context.waitTicks(4);
+	}
+
+	private void chatCommands() throws Exception {
+		chat("/lingua tema");
+		check(context.computeOnClient(mc -> mc.screen instanceof ThemeScreen), "/lingua tema abre a tela de tema");
+		UiTheme before = UiTheme.byId(LinguaCraft.config.theme);
+		clickButtonContaining("linguacraft.theme.hanji");
+		context.waitTicks(2);
+		check(UiTheme.current() == UiTheme.HANJI, "o tema marcado vale na hora");
+		context.getInput().pressKey(GLFW.GLFW_KEY_ESCAPE);
+		context.waitForScreen(null);
+		check(UiTheme.current() == before, "cancelar volta ao tema anterior");
+
+		chat("/lingua tema");
+		clickButtonContaining("linguacraft.theme.hanji");
+		context.waitTicks(2);
+		clickButtonContaining("linguacraft.theme.confirm");
+		context.waitForScreen(null);
+		String saved = java.nio.file.Files.readString(net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("linguacraft.json"));
+		check(saved.contains("\"theme\": \"hanji\""), "confirmar salva o tema");
+
+		chat("/lingua idioma");
+		check(context.computeOnClient(mc -> mc.screen instanceof LanguageScreen), "/lingua idioma abre a tela de idioma");
+		context.getInput().pressKey(GLFW.GLFW_KEY_ESCAPE);
+		context.waitForScreen(null);
+		check(currentLanguage().equals(PlayerProgress.BOTH), "cancelar nao muda o idioma");
+
+		chat("/lingua config");
+		check(context.computeOnClient(mc -> mc.screen instanceof LinguaConfigScreen), "/lingua config abre a configuracao");
+		context.waitTicks(2);
+		context.takeScreenshot("config-no-jogo");
+		clickButtonContaining("linguacraft.config.theme");
+		context.waitForScreen(ThemeScreen.class);
+		context.getInput().pressKey(GLFW.GLFW_KEY_ESCAPE);
+		context.waitForScreen(LinguaConfigScreen.class);
+		context.waitTicks(2);
+		clickButtonContaining("linguacraft.config.language");
+		context.waitForScreen(LanguageScreen.class);
+		clickButton(context.computeOnClient(mc -> I18n.get("linguacraft.setup.korean"))::equals);
+		waitUntil(() -> context.computeOnClient(mc -> mc.screen == null) && serverReady());
+		check(currentLanguage().equals(PlayerProgress.KOREAN), "a tela de idioma troca o idioma");
+
+		chat("/lingua idioma japones");
+		waitUntil(() -> context.computeOnClient(mc -> mc.screen == null) && serverReady());
+		check(currentLanguage().equals(PlayerProgress.JAPANESE), "/lingua idioma japones escolhe direto");
+		command("clear @p");
+		command("give @p minecraft:stone 8");
+		chat("/lingua desafio item quiz");
+		check(context.computeOnClient(mc -> mc.screen instanceof QuizScreen), "/lingua desafio continua funcionando pelo chat");
+		LinguaCraft.config.theme = before.id();
+	}
+
+	private String currentLanguage() {
+		return world.getServer().computeOnServer(server -> LinguaCraft.progress(player(server)).language());
+	}
+
+	/** Registra cada tela em cada tema, para conferir as capturas. */
+	private void themeScreenshots() throws Exception {
+		String original = LinguaCraft.config.theme;
+		RouletteStartPayload.Kind[] kinds = RouletteStartPayload.Kind.values();
+		for (UiTheme theme : UiTheme.selectable()) {
+			String name = "tema-" + theme.id();
+			LinguaCraft.config.theme = theme.id();
+			LinguaCraft.config.quizSeconds = 60;
+			LinguaCraft.config.speakSeconds = 60;
+			// Com a roleta invertida ligada, a sequência aparece. Zerada, ela não abre no meio das capturas.
+			LinguaCraft.config.rewardRouletteEnabled = true;
+			onServer(server -> LinguaCraft.setProgress(player(server), LinguaCraft.progress(player(server)).afterLoss()));
+			command("clear @p");
+			command("give @p minecraft:cobblestone 64");
+			command("give @p minecraft:apple 8");
+			command("time set day");
+
+			context.setScreen(() -> new ThemeScreen((Screen) null));
+			context.waitTicks(2);
+			context.takeScreenshot(name + "-escolha");
+			context.setScreen(() -> new LanguageScreen(null, language -> { }));
+			context.waitTicks(2);
+			context.takeScreenshot(name + "-idioma");
+			context.setScreen(() -> new MicrophoneScreen(null, microphone -> { }));
+			context.waitTicks(2);
+			context.takeScreenshot(name + "-microfone");
+			context.setScreen(() -> new VoiceSetupScreen(PlayerProgress.languagesOf(PlayerProgress.BOTH), () -> { }, () -> { }));
+			context.waitTicks(1);
+			context.takeScreenshot(name + "-download");
+			context.setScreen(() -> null);
+
+			language(PlayerProgress.JAPANESE);
+			start("item quiz");
+			context.waitForScreen(QuizScreen.class);
+			context.waitTicks(2);
+			context.takeScreenshot(name + "-popup-ja");
+			ChallengeView quiz = view();
+			clickButton(label -> !label.equals(quiz.word));
+			context.waitTicks(3);
+			context.takeScreenshot(name + "-popup-erro");
+			command("gamemode spectator @p");
+			context.waitFor(mc -> ChallengeClient.current() == null, 40);
+			command("gamemode survival @p");
+			context.waitTicks(2);
+			context.setScreen(() -> new StudyScreen(null));
+			context.waitTicks(2);
+			context.takeScreenshot(name + "-estudo");
+			context.setScreen(() -> null);
+
+			language(PlayerProgress.KOREAN);
+			start("item fala");
+			context.waitFor(mc -> ChallengeClient.current() != null, 20);
+			context.waitTicks(3);
+			context.takeScreenshot(name + "-fala");
+			context.getInput().pressKey(LinguaCraftClient.typeAnswerKey);
+			context.waitForScreen(TypeAnswerScreen.class);
+			context.waitTicks(2);
+			context.takeScreenshot(name + "-digitar");
+			context.setScreen(() -> null);
+			command("gamemode spectator @p");
+			context.waitFor(mc -> ChallengeClient.current() == null, 40);
+			command("gamemode survival @p");
+			context.waitTicks(2);
+
+			start("item segurar");
+			context.waitFor(mc -> ChallengeClient.current() != null, 20);
+			context.waitTicks(3);
+			context.takeScreenshot(name + "-segurar");
+			command("gamemode spectator @p");
+			context.waitFor(mc -> ChallengeClient.current() == null, 40);
+			command("gamemode survival @p");
+			context.waitTicks(2);
+
+			for (RouletteStartPayload.Kind kind : kinds) {
+				context.setScreen(() -> new RouletteScreen(new RouletteStartPayload(1, kind, "minecraft:cobblestone", 64, List.of(1, 16, 32, 48, 64), List.of(25, 25, 20, 15, 15), 200)));
+				context.waitTicks(2);
+				context.takeScreenshot(name + "-roleta-" + kind.name().toLowerCase(java.util.Locale.ROOT));
+			}
+			context.setScreen(() -> null);
+			context.waitTicks(2);
+		}
+		LinguaCraft.config.theme = original;
 	}
 
 	private void modMenuConfig() throws Exception {
@@ -499,9 +675,6 @@ public class LinguaCraftClientTest implements FabricClientGameTest {
 		context.waitTicks(2);
 		context.takeScreenshot("furigana-popup");
 		ChallengeView quiz = view();
-		clickButton(label -> !label.equals(quiz.word));
-		context.waitTicks(3);
-		context.takeScreenshot("furigana-popup-erro");
 		clickButton(label -> label.equals(quiz.word));
 		context.waitTicks(3);
 
@@ -522,6 +695,62 @@ public class LinguaCraftClientTest implements FabricClientGameTest {
 		context.waitTicks(3);
 	}
 
+	private void quizWrongPunishes() {
+		command("give @p minecraft:stone 64");
+		language(PlayerProgress.KOREAN);
+		LinguaCraft.config.quizSeconds = 60;
+		start("item quiz");
+		context.waitForScreen(QuizScreen.class);
+		ChallengeView view = view();
+		context.waitTicks(2);
+		clickButton(label -> !label.equals(view.word));
+		context.waitTicks(3);
+		context.takeScreenshot("quiz-erro");
+		check(context.computeOnClient(mc -> mc.screen instanceof QuizScreen), "mostra a alternativa certa antes da punicao");
+		check(count(Items.STONE) == 64, "a roleta ainda nao rodou");
+		context.waitForScreen(RouletteScreen.class);
+		check(streak() == 0, "errar zera a sequencia");
+		context.waitFor(mc -> mc.screen instanceof RouletteScreen roulette && roulette.resultAmount() > 0, 60);
+		int amount = rouletteAmount();
+		context.waitTicks(SPIN_WAIT_TICKS);
+		check(count(Items.STONE) == 64 - amount, "errar uma vez exclui a fatia sorteada");
+		context.waitForScreen(null);
+
+		check(context.computeOnClient(mc -> WorldFlashcards.current().size(PlayerProgress.KOREAN)) > 0, "a palavra entra nos flashcards");
+		ScorePayload score = context.computeOnClient(mc -> ChallengeClient.score());
+		check(score != null && score.totalWrong() > 0 && score.streak() == 0, "o placar recebe o erro: " + score);
+		chat("/lingua estudar");
+		check(context.computeOnClient(mc -> mc.screen instanceof StudyScreen), "/lingua estudar abre os flashcards");
+		context.waitTicks(2);
+		context.takeScreenshot("estudo-frente");
+		clickButtonContaining("linguacraft.study.show");
+		context.waitTicks(2);
+		context.takeScreenshot("estudo-verso");
+		clickButtonContaining("linguacraft.study.right");
+		context.waitTicks(2);
+		context.getInput().pressKey(GLFW.GLFW_KEY_ESCAPE);
+		context.waitForScreen(null);
+
+		chat("/lingua palavras");
+		check(context.computeOnClient(mc -> mc.screen instanceof WordListScreen list && list.wordCount() > 0), "/lingua palavras mostra as palavras");
+		context.waitTicks(2);
+		context.takeScreenshot("lista-de-palavras");
+		context.getInput().pressKey(GLFW.GLFW_KEY_ESCAPE);
+		context.waitForScreen(null);
+
+		chat("/lingua alfabeto");
+		check(context.computeOnClient(mc -> mc.screen instanceof AlphabetScreen), "/lingua alfabeto abre o treino");
+		context.waitTicks(2);
+		context.takeScreenshot("alfabeto-tabela");
+		clickButtonContaining("linguacraft.alphabet.practice");
+		context.waitTicks(2);
+		context.takeScreenshot("alfabeto-treino");
+		context.getInput().pressKey(GLFW.GLFW_KEY_ESCAPE);
+		context.waitTicks(2);
+		context.getInput().pressKey(GLFW.GLFW_KEY_ESCAPE);
+		context.waitForScreen(null);
+	}
+
 	private void quizWrongThenRight() {
 		command("give @p minecraft:stone 64");
 		language(PlayerProgress.KOREAN);
@@ -533,19 +762,14 @@ public class LinguaCraftClientTest implements FabricClientGameTest {
 		context.waitTicks(2);
 		context.takeScreenshot("quiz-coreano");
 
-		clickButton(label -> !label.equals(view.word));
-		context.waitTicks(3);
-		context.takeScreenshot("quiz-erro");
-		check(count(Items.STONE) == 64, "erro nao deve excluir");
-		check(context.computeOnClient(mc -> mc.screen instanceof QuizScreen), "popup deve continuar aberto");
-		check(streak() == 0, "erro nao conta sequencia");
-
 		clickButton(label -> label.equals(view.word));
 		context.waitTicks(3);
 		context.takeScreenshot("quiz-acerto");
 		check(context.computeOnClient(mc -> mc.screen == null), "popup deve fechar ao acertar");
 		check(count(Items.STONE) == 64, "acerto nao deve excluir");
 		check(streak() == 1, "acerto soma sequencia");
+		check(world.getServer().computeOnServer(server -> server.getScoreboard().getPlayersTeam(player(server).getScoreboardName()) != null), "o jogador recebe o titulo");
+		check(world.getServer().computeOnServer(server -> server.getScoreboard().getDisplayObjective(net.minecraft.world.scores.DisplaySlot.LIST) != null), "a lista do Tab mostra os acertos");
 
 		language(PlayerProgress.JAPANESE);
 		start("item quiz");
@@ -760,11 +984,10 @@ public class LinguaCraftClientTest implements FabricClientGameTest {
 		context.waitTicks(3);
 		context.takeScreenshot("segurar-alerta");
 
-		// O item da mão não é o sorteado, então segurá-lo por 1 segundo conta como erro.
+		// O item que já estava na mão no início não conta como erro.
 		context.waitTicks(24);
 		context.takeScreenshot("segurar-erro");
-		check(view.wrongItem, "segurar outro item deve mostrar erro");
-		check(ChallengeClient.current() == view, "segurar outro item nao encerra");
+		check(ChallengeClient.current() == view, "o item que ja estava na mao nao encerra");
 		check(streak() == 0, "item errado nao conta");
 
 		selectHotbar(view.icon.is(Items.STONE) ? 0 : 1);
@@ -772,8 +995,21 @@ public class LinguaCraftClientTest implements FabricClientGameTest {
 		context.takeScreenshot("segurar-acerto");
 		check(streak() == 1, "segurar o certo vence");
 		check(count(Items.STONE) == 8 && count(Items.DIRT) == 8, "acerto nao exclui");
-		LinguaCraft.config.holdSeconds = 4;
 		context.waitFor(mc -> ChallengeClient.current() == null, 60);
+
+		// Trocar para outro item e ficar nele por 1 segundo já é a derrota.
+		context.waitTicks(1);
+		selectHotbar(2);
+		start("item segurar");
+		context.waitFor(mc -> ChallengeClient.current() != null, 20);
+		ChallengeView second = view();
+		selectHotbar(second.icon.is(Items.STONE) ? 1 : 0);
+		context.waitForScreen(RouletteScreen.class);
+		check(streak() == 0, "segurar outro item perde a rodada");
+		context.waitFor(mc -> mc.screen instanceof RouletteScreen roulette && roulette.resultAmount() > 0, 200);
+		context.waitTicks(SPIN_WAIT_TICKS);
+		context.waitForScreen(null);
+		LinguaCraft.config.holdSeconds = 4;
 	}
 
 	private void holdTimeout() {

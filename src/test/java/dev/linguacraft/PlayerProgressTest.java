@@ -22,6 +22,20 @@ class PlayerProgressTest {
 	}
 
 	@Test
+	void scoreCountsWinsLossesAndTheBestStreak() {
+		PlayerProgress progress = PlayerProgress.initial(PlayerProgress.BOTH).afterWin().afterWin().afterWin();
+		assertEquals(3, progress.bestStreak());
+		progress = progress.afterLoss().afterWin().afterReward();
+		assertEquals(0, progress.streak());
+		assertEquals(3, progress.bestStreak(), "o recorde sobrevive a derrota e a recompensa");
+		assertEquals(4, progress.totalCorrect());
+		assertEquals(1, progress.totalWrong());
+		PlayerProgress changed = progress.withLanguage(PlayerProgress.KOREAN).withEnabled(false, false);
+		assertEquals(4, changed.totalCorrect(), "trocar preferencias mantem o placar");
+		assertEquals(3, changed.bestStreak());
+	}
+
+	@Test
 	void lossResetsAndKeepsPreferences() {
 		PlayerProgress progress = PlayerProgress.initial(PlayerProgress.KOREAN).withEnabled(false, true).afterWin().afterWin();
 		PlayerProgress lost = progress.afterLoss();

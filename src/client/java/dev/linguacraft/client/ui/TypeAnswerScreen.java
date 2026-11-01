@@ -40,10 +40,12 @@ public final class TypeAnswerScreen extends Screen {
 
 	@Override
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		UiTheme.Palette palette = UiDraw.palette();
+		UiDraw.panel(graphics, (width - BOX_WIDTH) / 2 - 10, height / 2 - 22, BOX_WIDTH + 20, 60);
 		super.render(graphics, mouseX, mouseY, partialTick);
 		Component heading = Component.translatable("linguacraft.type.title", Component.translatable("linguacraft.language." + view.language));
-		graphics.drawCenteredString(font, heading, width / 2, height / 2 - 14, UiColors.WHITE);
-		graphics.drawCenteredString(font, Component.translatable("linguacraft.type.hint"), width / 2, height / 2 + 26, UiColors.MUTED);
+		UiDraw.centered(graphics, font, heading, width / 2, height / 2 - 14, palette.ink());
+		UiDraw.centered(graphics, font, Component.translatable("linguacraft.type.hint"), width / 2, height / 2 + 26, palette.muted());
 	}
 
 	@Override

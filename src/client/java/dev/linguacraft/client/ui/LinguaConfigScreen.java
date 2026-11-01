@@ -1,12 +1,15 @@
 package dev.linguacraft.client.ui;
 
 import dev.linguacraft.LinguaCraft;
+import dev.linguacraft.client.VoiceSetup;
 import dev.linguacraft.client.voice.Microphones;
 import dev.linguacraft.client.voice.ModelManager;
 import dev.linguacraft.config.LinguaConfig;
 import dev.linguacraft.data.PlayerProgress;
+import dev.linguacraft.net.LanguageChoicePayload;
 import java.util.List;
 import java.util.function.IntConsumer;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.OptionInstance;
 import net.minecraft.client.Options;
 import net.minecraft.client.gui.components.Button;
@@ -16,7 +19,7 @@ import net.minecraft.client.gui.screens.options.OptionsSubScreen;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
-/** A tela da engrenagem no Mod Menu. Salva ao fechar. */
+/** A tela da engrenagem no Mod Menu e do {@code /lingua config}. Salva ao fechar. */
 public final class LinguaConfigScreen extends OptionsSubScreen {
 	private static final int SECONDS_PER_MINUTE = 60;
 
@@ -27,6 +30,12 @@ public final class LinguaConfigScreen extends OptionsSubScreen {
 	@Override
 	protected void addOptions() {
 		LinguaConfig config = LinguaCraft.config;
+
+		list.addHeader(Component.translatable("linguacraft.config.general"));
+		list.addSmall(themeButton(), languageButton());
+		list.addSmall(studyButton(),
+				OptionInstance.createBoolean("linguacraft.config.scoreboard", config.showScoreboard, value -> config.showScoreboard = value).createButton(minecraft.options));
+		list.addSmall(OptionInstance.createBoolean("linguacraft.config.titles", config.showTitles, value -> config.showTitles = value).createButton(minecraft.options), null);
 
 		list.addHeader(Component.translatable("linguacraft.config.voice"));
 		list.addSmall(microphoneButton(config), testButton());
@@ -54,6 +63,33 @@ public final class LinguaConfigScreen extends OptionsSubScreen {
 		list.addSmall(
 				OptionInstance.createBoolean("linguacraft.config.reward_enabled", config.rewardRouletteEnabled, value -> config.rewardRouletteEnabled = value),
 				range("linguacraft.config.reward_streak", 1, 20, config.rewardStreak, "linguacraft.config.wins", value -> config.rewardStreak = value));
+	}
+
+	private Button themeButton() {
+		Component name = Component.translatable("linguacraft.theme." + UiTheme.current().id());
+		return Button.builder(Options.genericValueLabel(Component.translatable("linguacraft.config.theme"), name), button ->
+				minecraft.setScreen(new ThemeScreen(this))).build();
+	}
+
+	/** O idioma fica salvo por jogador no mundo, então só dá para trocar dentro de um. */
+	private Button languageButton() {
+		Button button = Button.builder(Component.translatable("linguacraft.config.language"), pressed ->
+				VoiceSetup.openLanguageChange(this)).build();
+		if (minecraft.player == null || !ClientPlayNetworking.canSend(LanguageChoicePayload.TYPE)) {
+			button.active = false;
+			button.setTooltip(Tooltip.create(Component.translatable("linguacraft.config.language_unavailable")));
+		}
+		return button;
+	}
+
+	/** Os flashcards são de cada mundo, então só dá para abrir dentro de um. */
+	private Button studyButton() {
+		Button button = Button.builder(Component.translatable("linguacraft.config.study"), pressed -> minecraft.setScreen(new StudyScreen(this))).build();
+		if (minecraft.player == null) {
+			button.active = false;
+			button.setTooltip(Tooltip.create(Component.translatable("linguacraft.config.study_unavailable")));
+		}
+		return button;
 	}
 
 	private Button microphoneButton(LinguaConfig config) {

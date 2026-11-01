@@ -19,8 +19,18 @@ public final class SpeakAlertHud {
 	private static final int TOP = 6;
 	private static final int PADDING = 8;
 	private static final float WORD_SCALE = 2f;
+	private static final int TALLEST_READING_ROW = 10;
 
 	private SpeakAlertHud() {
+	}
+
+	static int left(int guiWidth) {
+		return (guiWidth - WIDTH) / 2;
+	}
+
+	/** Abaixo do alerta mais alto, que é o que tem furigana. */
+	static int bottom() {
+		return TOP + BASE_HEIGHT + TALLEST_READING_ROW;
 	}
 
 	public static void render(GuiGraphics graphics, DeltaTracker delta) {
@@ -43,39 +53,39 @@ public final class SpeakAlertHud {
 		int height = BASE_HEIGHT + readingRow;
 		int rowY = y + readingRow;
 
-		graphics.fill(x, y, x + WIDTH, y + height, UiColors.panelColor(view));
+		UiTheme.Palette palette = UiDraw.palette();
+		UiDraw.panel(graphics, x, y, WIDTH, height, UiDraw.panelState(view));
 
 		if (view.minigame == Minigame.SPEAK) {
 			graphics.renderItem(view.icon, contentX, y + PADDING + readingRow / 2);
 			contentX += iconWidth;
 		}
 
-		FuriganaText.draw(graphics, font, view.segments, contentX, y + PADDING + 2, scale, UiColors.WHITE, true);
+		FuriganaText.draw(graphics, font, view.segments, contentX, y + PADDING + 2, scale, palette.ink(), palette.shadow());
 
 		if (view.correctTicks > 0) {
-			graphics.drawString(font, Component.translatable("linguacraft.hud.correct"), x + PADDING, rowY + 30, UiColors.GREEN, true);
+			UiDraw.text(graphics, font, Component.translatable("linguacraft.hud.correct"), x + PADDING, rowY + 30, palette.green());
 		} else {
-			graphics.drawString(font, instruction(view), x + PADDING, rowY + 28, UiColors.MUTED, true);
+			UiDraw.text(graphics, font, instruction(view), x + PADDING, rowY + 28, palette.muted());
 			Component status = status(view);
 			if (status != null) {
 				// A sequência de acertos fica na mesma linha, à direita.
-				int streakWidth = view.streakGoal > 0 ? font.width(Component.translatable("linguacraft.hud.streak", view.streak, view.streakGoal)) + PADDING : 0;
-				String text = UiColors.fit(font, status, WIDTH - PADDING * 2 - streakWidth);
-				graphics.drawString(font, text, x + PADDING, rowY + 39, view.wrongFlashTicks > 0 || view.wrongItem ? UiColors.RED : UiColors.GOLD, true);
+				int streakWidth = view.streakGoal > 0 ? UiDraw.streakWidth(font, view.streak, view.streakGoal) + PADDING : 0;
+				String text = UiDraw.fit(font, status, WIDTH - PADDING * 2 - streakWidth);
+				UiDraw.text(graphics, font, text, x + PADDING, rowY + 39, view.wrongFlashTicks > 0 ? palette.red() : palette.accent());
 			}
 			if (view.minigame == Minigame.SPEAK) {
 				Component hint = Component.translatable("linguacraft.hud.type_hint", LinguaCraftClient.typeAnswerKey.getTranslatedKeyMessage());
-				graphics.drawString(font, hint, x + WIDTH - PADDING - font.width(hint), rowY + 28, UiColors.MUTED, true);
+				UiDraw.text(graphics, font, hint, x + WIDTH - PADDING - font.width(hint), rowY + 28, palette.muted());
 			}
 		}
 
 		if (view.streakGoal > 0) {
-			Component streak = Component.translatable("linguacraft.hud.streak", view.streak, view.streakGoal);
-			graphics.drawString(font, streak, x + WIDTH - PADDING - font.width(streak), rowY + 39, UiColors.GOLD, true);
+			UiDraw.streak(graphics, font, view.streak, view.streakGoal, x + WIDTH - PADDING, rowY + 39);
 		}
 
 		if (view.correctTicks <= 0) {
-			UiColors.timerBar(graphics, x + PADDING, y + height - 9, WIDTH - PADDING * 2, 4, view.remainingFraction());
+			UiDraw.timerBar(graphics, x + PADDING, y + height - 9, WIDTH - PADDING * 2, 4, view.remainingFraction());
 		}
 	}
 
@@ -88,7 +98,7 @@ public final class SpeakAlertHud {
 
 	private static Component status(ChallengeView view) {
 		if (view.minigame == Minigame.HOLD) {
-			return view.wrongItem ? Component.translatable("linguacraft.hud.wrong_item") : null;
+			return Component.translatable("linguacraft.hud.hold_warning");
 		}
 		if (view.heard != null) {
 			return Component.translatable("linguacraft.hud.heard", view.heard);

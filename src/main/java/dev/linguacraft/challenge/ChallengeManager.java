@@ -11,6 +11,7 @@ import dev.linguacraft.net.LanguageChoicePayload;
 import dev.linguacraft.net.RouletteResultPayload;
 import dev.linguacraft.net.RouletteSpinPayload;
 import dev.linguacraft.net.RouletteStartPayload;
+import dev.linguacraft.net.ScorePayload;
 import dev.linguacraft.net.VoiceSetupPayload;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,6 +25,7 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -37,6 +39,7 @@ import org.jetbrains.annotations.Nullable;
 public final class ChallengeManager {
 	private static final int TICKS_PER_SECOND = 20;
 	private static final int RETRY_DELAY_TICKS = 30 * TICKS_PER_SECOND;
+	private static final int NOTHING_TO_ASK_RETRY_TICKS = 10 * TICKS_PER_SECOND;
 	/** Duração da animação da roleta. Os itens só mudam quando ela termina. */
 	private static final int SPIN_TICKS = 80;
 
@@ -87,9 +90,7 @@ public final class ChallengeManager {
 
 	/** Volta a contar o intervalo do zero, para que um desafio não apareça assim que o jogador religar. */
 	public void restartTimers(ServerPlayer player) {
-		PlayerState state = state(player);
-		state.nextItemTick = now + interval(config.itemIntervalMinSeconds, config.itemIntervalMaxSeconds);
-		state.nextMobTick = now + interval(config.mobIntervalMinSeconds, config.mobIntervalMaxSeconds);
+		state(player).timers.restart(itemInterval(), mobInterval());
 	}
 
 	/** Depois de mudar de idioma, os desafios esperam o cliente garantir o modelo de voz. */
@@ -107,7 +108,12 @@ public final class ChallengeManager {
 
 	private void onLanguageChoice(ServerPlayer player, LanguageChoicePayload payload) {
 		if (PlayerProgress.isValidLanguage(payload.language())) {
+			boolean changing = progress(player).languageChosen();
 			setProgress(player, progress(player).withLanguage(payload.language()));
+			// Na primeira escolha, o cliente já está no meio da configuração.
+			if (changing) {
+				onLanguageChanged(player);
+			}
 		}
 	}
 
@@ -129,6 +135,7 @@ public final class ChallengeManager {
 					state.setupSent = true;
 					PlayerProgress progress = progress(player);
 					ServerPlayNetworking.send(player, new VoiceSetupPayload(!progress.languageChosen(), progress.language()));
+					syncScore(player);
 				}
 				tickPlayer(player, state);
 			}
@@ -151,27 +158,51 @@ public final class ChallengeManager {
 			tickChallenge(player, state);
 			return;
 		}
-		if (!state.ready || now < state.cooldownUntil) {
+		if (!state.ready) {
 			return;
 		}
 		PlayerProgress progress = progress(player);
-		if (progress.itemsEnabled() && now >= state.nextItemTick) {
-			state.nextItemTick = now + interval(config.itemIntervalMinSeconds, config.itemIntervalMaxSeconds);
-			if (start(player, state, SubjectType.ITEM, null)) {
-				return;
+		ChallengeTimers.Due due = state.timers.tick(progress.itemsEnabled(), progress.mobsEnabled(),
+				maxTicks(config.itemIntervalMinSeconds, config.itemIntervalMaxSeconds), maxTicks(config.mobIntervalMinSeconds, config.mobIntervalMaxSeconds));
+		switch (due) {
+			case ITEM -> {
+				if (start(player, state, SubjectType.ITEM, null)) {
+					state.timers.itemStarted(itemInterval(), minTicks(config.mobIntervalMinSeconds) / 2);
+				} else {
+					// Sem item no inventário agora. Um item pego daqui a pouco não pode esperar um intervalo inteiro.
+					state.timers.retryItem(NOTHING_TO_ASK_RETRY_TICKS);
+				}
 			}
-		}
-		if (progress.mobsEnabled() && now >= state.nextMobTick) {
-			state.nextMobTick = now + interval(config.mobIntervalMinSeconds, config.mobIntervalMaxSeconds);
-			start(player, state, SubjectType.MOB, null);
+			case MOB -> {
+				if (start(player, state, SubjectType.MOB, null)) {
+					state.timers.mobStarted(mobInterval(), minTicks(config.itemIntervalMinSeconds) / 2);
+				} else {
+					state.timers.retryMob(NOTHING_TO_ASK_RETRY_TICKS);
+				}
+			}
+			case NONE -> {
+			}
 		}
 	}
 
 	private void tickChallenge(ServerPlayer player, PlayerState state) {
 		Challenge challenge = state.active;
-		if (challenge.minigame == Minigame.HOLD && challenge.holdTracker.tick(player.getMainHandItem().is(challenge.item()))) {
-			win(player, state);
-		} else if (now >= challenge.deadline) {
+		if (challenge.holdRound != null) {
+			ItemStack hand = player.getMainHandItem();
+			switch (challenge.holdRound.tick(hand.isEmpty() ? null : hand.getItem())) {
+				case WON -> {
+					win(player, state);
+					return;
+				}
+				case LOST -> {
+					expire(player, state);
+					return;
+				}
+				case NONE -> {
+				}
+			}
+		}
+		if (now >= challenge.deadline) {
 			expire(player, state);
 		}
 	}
@@ -226,6 +257,10 @@ public final class ChallengeManager {
 		int duration = seconds * TICKS_PER_SECOND;
 		PlayerProgress progress = progress(player);
 		Challenge challenge = new Challenge(nextId++, minigame, type, subject, requested, now + duration);
+		if (minigame == Minigame.HOLD) {
+			ItemStack hand = player.getMainHandItem();
+			challenge.holdRound = new HoldRound<>(challenge.item(), hand.isEmpty() ? null : hand.getItem());
+		}
 		state.active = challenge;
 		ServerPlayNetworking.send(player, new ChallengeStartPayload(challenge.id, minigame, type, subject, resolveLanguage(progress),
 				duration, progress.streak(), streakGoal()));
@@ -254,6 +289,12 @@ public final class ChallengeManager {
 					win(player, state);
 				}
 			}
+			// Na fala, dá para tentar até o tempo acabar. Nas alternativas, a primeira resposta errada já é a derrota.
+			case WRONG -> {
+				if (challenge.minigame == Minigame.QUIZ) {
+					expire(player, state);
+				}
+			}
 			case UNAVAILABLE -> {
 				(challenge.type == SubjectType.ITEM ? state.unavailableItems : state.unavailableMobs).add(challenge.subject);
 				state.active = null;
@@ -262,24 +303,41 @@ public final class ChallengeManager {
 			case BUSY -> {
 				state.active = null;
 				if (challenge.type == SubjectType.ITEM) {
-					state.nextItemTick = now + RETRY_DELAY_TICKS;
+					state.timers.retryItem(RETRY_DELAY_TICKS);
 				} else {
-					state.nextMobTick = now + RETRY_DELAY_TICKS;
+					state.timers.retryMob(RETRY_DELAY_TICKS);
 				}
 			}
 		}
 	}
 
+	private void syncScore(ServerPlayer player) {
+		PlayerProgress progress = progress(player);
+		ServerPlayNetworking.send(player, new ScorePayload(progress.streak(), streakGoal(), progress.bestStreak(), progress.totalCorrect(), progress.totalWrong()));
+		TitleTeams.apply(player.level().getServer(), player, progress.totalCorrect(), config.showTitles);
+	}
+
+	private void announceTitle(ServerPlayer player, PlayerTitle title) {
+		player.level().getServer().getPlayerList().broadcastSystemMessage(
+				Component.translatableWithFallback("linguacraft.message.new_title", "%s agora é %s!", player.getName(), title.tag()).withStyle(ChatFormatting.YELLOW), false);
+	}
+
 	private void win(ServerPlayer player, PlayerState state) {
 		Challenge challenge = state.active;
+		PlayerTitle titleBefore = PlayerTitle.of(progress(player).totalCorrect());
 		PlayerProgress progress = progress(player).afterWin();
 		setProgress(player, progress);
+		PlayerTitle title = PlayerTitle.of(progress.totalCorrect());
+		if (title != titleBefore && config.showTitles) {
+			announceTitle(player, title);
+		}
 		ServerPlayNetworking.send(player, new ChallengeEndedPayload(challenge.id, ChallengeEndedPayload.Outcome.WON, progress.streak()));
 		finish(state);
 		if (progress.rewardDue(streakGoal())) {
 			setProgress(player, progress.afterReward());
 			startReward(player, state);
 		}
+		syncScore(player);
 	}
 
 	private void expire(ServerPlayer player, PlayerState state) {
@@ -293,6 +351,7 @@ public final class ChallengeManager {
 		if (challenge.type == SubjectType.ITEM) {
 			startPunishment(player, state, challenge.item());
 		}
+		syncScore(player);
 	}
 
 	private void startPunishment(ServerPlayer player, PlayerState state, Item item) {
@@ -359,7 +418,7 @@ public final class ChallengeManager {
 		} else if (now >= run.applyAt) {
 			applyRoulette(player, run);
 			state.roulette = null;
-			state.cooldownUntil = now + RETRY_DELAY_TICKS;
+			state.timers.rest(RETRY_DELAY_TICKS);
 		}
 	}
 
@@ -400,7 +459,7 @@ public final class ChallengeManager {
 		if (state.roulette != null) {
 			ServerPlayNetworking.send(player, new ChallengeEndedPayload(state.roulette.id, ChallengeEndedPayload.Outcome.CANCELLED, progress(player).streak()));
 			state.roulette = null;
-			state.cooldownUntil = now + RETRY_DELAY_TICKS;
+			state.timers.rest(RETRY_DELAY_TICKS);
 		}
 	}
 
@@ -419,19 +478,33 @@ public final class ChallengeManager {
 
 	private void finish(PlayerState state) {
 		state.active = null;
-		state.cooldownUntil = now + RETRY_DELAY_TICKS;
+		state.timers.rest(RETRY_DELAY_TICKS);
 	}
 
 	private PlayerState state(ServerPlayer player) {
-		return states.computeIfAbsent(player.getUUID(), uuid -> new PlayerState(
-				now + interval(config.itemIntervalMinSeconds, config.itemIntervalMaxSeconds),
-				now + interval(config.mobIntervalMinSeconds, config.mobIntervalMaxSeconds)));
+		return states.computeIfAbsent(player.getUUID(), uuid -> new PlayerState(new ChallengeTimers(itemInterval(), mobInterval())));
+	}
+
+	private int itemInterval() {
+		return interval(config.itemIntervalMinSeconds, config.itemIntervalMaxSeconds);
+	}
+
+	private int mobInterval() {
+		return interval(config.mobIntervalMinSeconds, config.mobIntervalMaxSeconds);
 	}
 
 	private int interval(int minSeconds, int maxSeconds) {
 		int min = Math.max(1, minSeconds);
 		int max = Math.max(min, maxSeconds);
 		return (min + random.nextInt(max - min + 1)) * TICKS_PER_SECOND;
+	}
+
+	private static int minTicks(int minSeconds) {
+		return Math.max(1, minSeconds) * TICKS_PER_SECOND;
+	}
+
+	private static int maxTicks(int minSeconds, int maxSeconds) {
+		return Math.max(Math.max(1, minSeconds), maxSeconds) * TICKS_PER_SECOND;
 	}
 
 	private PlayerProgress progress(ServerPlayer player) {
@@ -443,9 +516,7 @@ public final class ChallengeManager {
 	}
 
 	private static final class PlayerState {
-		int nextItemTick;
-		int nextMobTick;
-		int cooldownUntil;
+		final ChallengeTimers timers;
 		boolean setupSent;
 		boolean ready;
 		boolean timersStarted;
@@ -454,9 +525,8 @@ public final class ChallengeManager {
 		final Set<String> unavailableItems = new HashSet<>();
 		final Set<String> unavailableMobs = new HashSet<>();
 
-		PlayerState(int nextItemTick, int nextMobTick) {
-			this.nextItemTick = nextItemTick;
-			this.nextMobTick = nextMobTick;
+		PlayerState(ChallengeTimers timers) {
+			this.timers = timers;
 		}
 	}
 
@@ -467,7 +537,7 @@ public final class ChallengeManager {
 		final String subject;
 		@Nullable final Minigame requested;
 		final int deadline;
-		final HoldTracker holdTracker = new HoldTracker();
+		@Nullable HoldRound<Item> holdRound;
 
 		Challenge(int id, Minigame minigame, SubjectType type, String subject, @Nullable Minigame requested, int deadline) {
 			this.id = id;

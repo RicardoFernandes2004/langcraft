@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
@@ -23,6 +22,7 @@ public final class MicrophoneScreen extends Screen {
 	/** O primeiro é sempre o padrão do sistema. */
 	private final List<Microphones.Device> devices = new ArrayList<>();
 	private int page;
+	private int panelBottom;
 
 	public MicrophoneScreen(@Nullable Screen parent, Consumer<String> onChosen) {
 		super(Component.translatable("linguacraft.microphone.title"));
@@ -46,15 +46,15 @@ public final class MicrophoneScreen extends Screen {
 		int y = TOP;
 		for (int i = page * rows; i < Math.min(devices.size(), (page + 1) * rows); i++) {
 			Microphones.Device device = devices.get(i);
-			addRenderableWidget(Button.builder(label(device), button -> onChosen.accept(device.id()))
-					.bounds(x, y, buttonWidth, 20)
-					.build());
+			addRenderableWidget(new ThemedButton(x, y, buttonWidth, 20, label(device), button -> onChosen.accept(device.id())));
 			y += ROW_HEIGHT;
 		}
+		panelBottom = y + 4;
 		if (pages > 1) {
 			int navY = height - 28;
-			addRenderableWidget(Button.builder(Component.literal("<"), button -> changePage(-1)).bounds(width / 2 - 44, navY, 40, 20).build()).active = page > 0;
-			addRenderableWidget(Button.builder(Component.literal(">"), button -> changePage(1)).bounds(width / 2 + 4, navY, 40, 20).build()).active = page < pages - 1;
+			addRenderableWidget(new ThemedButton(width / 2 - 44, navY, 40, 20, Component.literal("<"), button -> changePage(-1))).active = page > 0;
+			addRenderableWidget(new ThemedButton(width / 2 + 4, navY, 40, 20, Component.literal(">"), button -> changePage(1))).active = page < pages - 1;
+			panelBottom = navY + 24;
 		}
 	}
 
@@ -70,10 +70,13 @@ public final class MicrophoneScreen extends Screen {
 
 	@Override
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		UiTheme.Palette palette = UiDraw.palette();
+		int panelWidth = Math.min(MAX_BUTTON_WIDTH + 16, width - 4);
+		UiDraw.panel(graphics, (width - panelWidth) / 2, 8, panelWidth, panelBottom - 8);
 		super.render(graphics, mouseX, mouseY, partialTick);
-		graphics.drawCenteredString(font, title, width / 2, 16, UiColors.WHITE);
+		UiDraw.centered(graphics, font, title, width / 2, 16, palette.ink());
 		Component hint = Component.translatable(devices.size() > 1 ? "linguacraft.microphone.hint" : "linguacraft.microphone.none");
-		graphics.drawCenteredString(font, hint, width / 2, 28, devices.size() > 1 ? UiColors.MUTED : UiColors.RED);
+		UiDraw.centered(graphics, font, UiDraw.fit(font, hint, panelWidth - 12), width / 2, 28, devices.size() > 1 ? palette.muted() : palette.red());
 	}
 
 	@Override

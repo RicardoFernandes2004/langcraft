@@ -4,6 +4,7 @@ import dev.linguacraft.LinguaCraft;
 import dev.linguacraft.client.ui.LanguageScreen;
 import dev.linguacraft.client.ui.MicTestScreen;
 import dev.linguacraft.client.ui.MicrophoneScreen;
+import dev.linguacraft.client.ui.ThemeScreen;
 import dev.linguacraft.client.ui.VoiceSetupScreen;
 import dev.linguacraft.client.voice.ModelManager;
 import dev.linguacraft.data.PlayerProgress;
@@ -13,9 +14,10 @@ import dev.linguacraft.net.VoiceSetupPayload;
 import java.util.List;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import org.jetbrains.annotations.Nullable;
 
-/** Conduz idioma, microfone, download e palavra de teste, antes de os desafios começarem. */
+/** Conduz tema, idioma, microfone, download e palavra de teste, antes de os desafios começarem. */
 public final class VoiceSetup {
 	private static @Nullable VoiceSetupPayload pending;
 
@@ -33,11 +35,28 @@ public final class VoiceSetup {
 		}
 		VoiceSetupPayload setup = pending;
 		pending = null;
+		if (LinguaCraft.config.theme.isEmpty()) {
+			minecraft.setScreen(new ThemeScreen(() -> begin(minecraft, setup)));
+		} else {
+			begin(minecraft, setup);
+		}
+	}
+
+	private static void begin(Minecraft minecraft, VoiceSetupPayload setup) {
 		if (setup.chooseLanguage()) {
 			minecraft.setScreen(new LanguageScreen(VoiceSetup::onLanguageChosen));
 		} else {
 			prepareModels(minecraft, setup.language(), false);
 		}
+	}
+
+	/** Troca de idioma pedida pelo jogador. O servidor responde pedindo os modelos do novo idioma. */
+	public static void openLanguageChange(@Nullable Screen parent) {
+		Minecraft minecraft = Minecraft.getInstance();
+		minecraft.setScreen(new LanguageScreen(parent, language -> {
+			ClientPlayNetworking.send(new LanguageChoicePayload(language));
+			minecraft.setScreen(null);
+		}));
 	}
 
 	private static void onLanguageChosen(String language) {

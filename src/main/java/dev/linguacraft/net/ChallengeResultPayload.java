@@ -8,6 +8,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 public record ChallengeResultPayload(int id, Result result) implements CustomPacketPayload {
 	public enum Result {
 		CORRECT,
+		WRONG,
 		UNAVAILABLE,
 		BUSY
 	}

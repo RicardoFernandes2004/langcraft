@@ -16,13 +16,28 @@ Em servidores, o mod precisa estar no servidor e no jogo de cada jogador. Jogado
 
 ## Primeira entrada no mundo
 
-1. Uma tela pergunta qual idioma você quer praticar: coreano, japonês ou ambos. A escolha fica salva por jogador em cada mundo.
-2. Outra tela lista os microfones do computador, com o padrão do sistema em primeiro lugar. Se o microfone escolhido sumir depois, o mod usa o padrão.
-3. Se o modelo de voz ainda não foi baixado, uma tela mostra o progresso e fecha sozinha ao terminar. Dá para continuar sem esperar, o que pula o teste. Se o download falhar, a tela oferece tentar de novo ou continuar sem voz, só com digitação.
-4. Uma palavra de teste aparece em cada idioma escolhido, com a barra de volume do microfone e o que foi entendido. Errar não tem punição, e dá para trocar de microfone ou pular o teste.
-5. Só depois disso os desafios começam a contar.
+1. Na primeira vez, uma tela pede o tema visual, com uma amostra de cada um. A escolha vale para o jogo todo, em qualquer mundo.
+2. Uma tela pergunta qual idioma você quer praticar: coreano, japonês ou ambos. A escolha fica salva por jogador em cada mundo.
+3. Outra tela lista os microfones do computador, com o padrão do sistema em primeiro lugar. Se o microfone escolhido sumir depois, o mod usa o padrão.
+4. Se o modelo de voz ainda não foi baixado, uma tela mostra o progresso e fecha sozinha ao terminar. Dá para continuar sem esperar, o que pula o teste. Se o download falhar, a tela oferece tentar de novo ou continuar sem voz, só com digitação.
+5. Uma palavra de teste aparece em cada idioma escolhido, com a barra de volume do microfone e o que foi entendido. Errar não tem punição, e dá para trocar de microfone ou pular o teste.
+6. Só depois disso os desafios começam a contar.
 
 Trocar de idioma com `/lingua idioma` segue o mesmo caminho: se faltar o modelo, a tela de download aparece.
+
+## Temas
+
+| Tema | Visual |
+|---|---|
+| Clássico | Painel escuro translúcido e botões padrão do jogo |
+| Inventário | Cinza claro em relevo, como as telas de baú |
+| Bosque de Cerejeira | Moldura de madeira rosa e interior ameixa |
+| Cidade Antiga | Sculk e ciano, com a barra de tempo em segmentos |
+| Hanji | Papel claro, tinta preta e carimbo vermelho |
+| Dancheong | Verde, vermelhão e as cinco cores dos templos coreanos |
+| Festival Noturno | Índigo com ondas, viga de torii e botões cor de lanterna |
+
+Troque com `/lingua tema` ou na tela de configuração. O tema marcado já aparece na própria tela, e só fica salvo ao confirmar. As texturas são geradas por `tools/generate_theme_sprites.py`, que precisa do Pillow.
 
 ## Minigames
 
@@ -32,16 +47,68 @@ Trocar de idioma com `/lingua idioma` segue o mesmo caminho: se faltar o modelo,
 | Popup de alternativas | Ícone, nome em português e 4 alternativas | Clicar na escrita certa |
 | Pegue na mão | Só o nome no idioma | Segurar aquele item na mão por 1 segundo |
 
-Você pode tentar quantas vezes quiser até o tempo acabar, e cada erro dá um aviso visual. Só o fim do tempo causa punição.
+O erro funciona de um jeito diferente em cada minigame:
 
-- **Desafio de item:** se o tempo acabar, uma roleta define quanto da pilha é perdido, de 1 item até a pilha inteira. Uma pilha de 1 item é perdida direto, sem roleta.
-- **Desafio de mob:** se o tempo acabar, o mob perguntado nasce em cima de você, de uma galinha até o Warden (2% de chance).
+- **Alerta de fala:** você pode tentar quantas vezes quiser até o tempo acabar, e cada erro dá um aviso visual. Só o fim do tempo causa punição.
+- **Popup de alternativas:** a primeira alternativa errada já causa a punição, depois de mostrar a certa em verde.
+- **Pegue na mão:** segurar outro item por 1 segundo já causa a punição. A mão vazia e o item que já estava na mão no início não contam.
+
+- **Desafio de item:** se você perder, uma roleta define quanto da pilha é perdido, de 1 item até a pilha inteira. Uma pilha de 1 item é perdida direto, sem roleta.
+- **Desafio de mob:** se você perder, o mob perguntado nasce em cima de você, de uma galinha até o Warden (2% de chance).
 - **Roleta invertida:** a cada 5 acertos seguidos, uma roleta dá itens de uma pilha do seu inventário, de +1 até dobrar a pilha.
+
+Os dois intervalos só contam enquanto você está livre: param durante um desafio, uma roleta, os 30 segundos de espera depois de cada desafio e a preparação da voz, e também com o jogo pausado. Quando um desafio começa, o outro intervalo é afastado, para os dois não virem em sequência. Sem nenhum item no inventário, o mod tenta de novo a cada 10 segundos, em vez de esperar um intervalo inteiro.
+
+## Títulos
+
+Cada jogador tem um título antes do nome, visível para todos, inclusive na lista de jogadores e no chat. Ele sobe com os desafios vencidos: Novato (0), Aprendiz (25), Estudante (100), Poliglota (250), Tradutor (500) e Mestre das Línguas (1000). Quando alguém sobe de título, todos veem um aviso no chat. `/lingua titulos` mostra a lista e quanto falta. Os flashcards não contam, porque é o próprio jogador que marca o acerto.
+
+A lista do Tab funciona como ranking de quem está online: mostra o total de desafios vencidos ao lado do nome, com quem venceu mais em cima, e empates em ordem alfabética.
+
+Título e ranking usam os times e a pontuação do Minecraft, com um time automático para cada jogador. Quem já está em outro time, como em um servidor que usa times, fica sem título e fora da ordem, para não atrapalhar. Para desligar os dois, use `showTitles` ou **Títulos e ranking** na configuração.
+
+## Placar
+
+O canto superior esquerdo mostra o título, a sequência atual, o recorde, o total de acertos e o total de erros, salvos por jogador em cada mundo. Para esconder, use **Placar na tela** na configuração ou `showScoreboard`.
+
+## Flashcards
+
+Cada palavra de um desafio terminado entra nos seus flashcards, com a contagem de acertos e erros e a última resposta errada, seja falada, digitada ou clicada.
+
+As palavras são de cada mundo, então um mundo novo começa sem nenhuma. Em um mundo próprio, elas ficam em `saves/<mundo>/linguacraft/flashcards.json` e são apagadas com ele. Em um servidor, ficam em `config/linguacraft/flashcards/<endereço>.json`.
+
+Para estudar, aperte `K`, use `/lingua estudar` ou abra pela configuração dentro de um mundo. Você vê a palavra, tenta lembrar, mostra a resposta e marca **Acertei** ou **Errei**. As palavras em que você mais erra vêm primeiro, e as marcadas como erradas voltam no fim da rodada. Dá para filtrar por idioma e começar pelo português.
+
+Os flashcards usam repetição espaçada: a rodada só traz as palavras que chegaram na hora, contada em dias reais. Cada acerto seguido afasta a próxima revisão para 1, 3, 7, 14, 30 e 60 dias, e o botão **Acertei** mostra esse prazo. Errar no estudo recomeça a contagem e traz a palavra de volta. Perder um desafio também traz a palavra para agora, voltando um passo, enquanto vencer não muda a data. **Revisar mesmo assim** mostra todas as palavras quando não há nada na hora, sem encurtar os prazos, a não ser que você erre.
+
+O botão **Lista** na tela de estudo, ou `/lingua palavras`, mostra todas as palavras do mundo, das mais recentes para as mais antigas, com a leitura e o significado. Os acertos e erros aparecem separados por tipo de resposta: **Fala**, **Escrita** (digitada na caixa do alerta), **Quiz** e **Mão** (Pegue na mão).
+
+Estudar não muda o placar, e as palavras continuam podendo cair nos desafios. Nenhum desafio começa enquanto uma tela de estudo está aberta. Essas telas têm sempre o visual de caderno, não importa o tema escolhido.
+
+Um sininho avisa quando um desafio começa. O caderno faz som de folha ao abrir, ao trocar de tela e ao fechar. Esses sons seguem o volume de interface do jogo.
+
+## Alfabeto
+
+O botão **Alfabeto** na tela de estudo, ou `/lingua alfabeto`, abre uma tabela com as letras do idioma:
+
+- **Coreano:** consoantes, consoantes duplas, vogais e vogais compostas.
+- **Japonês:** hiragana e katakana, cada um com o básico, os sinais (como が e ぱ) e as junções (como きゃ).
+
+Clique em uma letra para ver a leitura e uma dica de pronúncia. A barra de cada letra mostra o quanto ela já foi dominada. **Praticar** faz uma rodada de até 10 perguntas com o grupo aberto, nos dois sentidos, começando pelas letras menos dominadas. Uma letra errada volta no fim da rodada. Não há punição, e o progresso fica salvo em cada mundo.
 
 ## Comandos
 
+A cada entrada no mundo, um aviso no chat lembra a tecla do caderno e o `/lingua`, que lista todos os comandos.
+
 - `/lingua desafio [item|mob] [fala|quiz|segurar]`: inicia um desafio agora. `segurar` só funciona com `item` e precisa de um item que não esteja na sua mão.
-- `/lingua idioma <coreano|japones|ambos>`: escolhe o idioma.
+- `/lingua tema`: abre a tela de escolha do tema.
+- `/lingua idioma`: abre a tela de escolha do idioma.
+- `/lingua idioma <coreano|japones|ambos>`: escolhe o idioma direto.
+- `/lingua config`: abre a tela de configuração, a mesma da engrenagem do Mod Menu.
+- `/lingua estudar`: abre os flashcards.
+- `/lingua palavras`: abre a lista de palavras do mundo.
+- `/lingua alfabeto`: abre o treino do alfabeto.
+- `/lingua titulos`: lista os títulos e mostra quanto falta para o próximo.
 - `/lingua ligar [itens|mobs]` e `/lingua desligar [itens|mobs]`: ligam e desligam os desafios automáticos.
 
 ## Furigana
@@ -52,7 +119,7 @@ As leituras vêm do dicionário Kuromoji, com uma tabela de correções para os 
 
 ## Fonte
 
-O hangul usa a fonte "LinguaCraft Hangul", uma versão reduzida da Nanum Gothic Bold (Copyright 2011 NHN Corporation), distribuída sob a SIL Open Font License 1.1. A licença e o aviso de modificação estão em `assets/linguacraft/font/`.
+O hangul usa a fonte "LinguaCraft Hangul", uma versão reduzida da Noto Sans KR Bold, e o japonês usa a "LinguaCraft Japanese", uma versão reduzida da Noto Sans JP Bold (ambas Copyright 2014-2021 Adobe), distribuídas sob a SIL Open Font License 1.1. As duas valem para todo o texto do jogo nesses alfabetos, e não só para o mod. A licença e o aviso de modificação estão em `assets/linguacraft/font/`.
 
 ## Reconhecimento de voz
 
@@ -96,6 +163,8 @@ O Mod Menu é opcional. Sem ele, ou para ajustes que a tela não mostra, como as
 | `microphone` | vazio | Nome do microfone. Vazio usa o padrão do sistema |
 | `voiceSimilarity` | 0.75 | Similaridade mínima para aceitar a fala, de 0 a 1 |
 | `showFurigana` | `true` | Mostra a leitura em hiragana sobre os kanjis |
+| `showScoreboard` | `true` | Mostra o placar no canto da tela |
+| `showTitles` | `true` | Mostra o título antes do nome e o ranking na lista do Tab |
 | `voiceModelBaseUrl` | site do Vosk | Endereço de onde baixar os modelos de voz |
 | `rouletteAutoSpinSeconds` | 10 | Tempo até a roleta girar sozinha |
 | `rouletteSlices` | ver abaixo | Fatias das duas roletas. `percent: 0` significa 1 item |
