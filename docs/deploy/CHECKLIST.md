@@ -32,7 +32,8 @@ Nunca envie o arquivo terminado em `-slim`, que não leva as bibliotecas de voz.
 | Endereço | `langcraft` |
 | Resumo | Learn Korean, Japanese, English, German and Spanish with your inventory. Lose a challenge and you pay for it. |
 | Descrição | `docs/deploy/description.md` |
-| Ícone | `common/src/main/resources/assets/langcraft/icon.png` |
+| Ícone | `docs/deploy/images/icon.png` |
+| Banner | `docs/deploy/images/banner.png`, como imagem de destaque da galeria ou no topo da descrição |
 | Categorias | Game Mechanics, Utility |
 | Lado | Cliente e servidor, obrigatório nos dois |
 | Licença | MIT |
