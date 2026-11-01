@@ -1,14 +1,30 @@
 # LangCraft
 
-Mod Fabric para Minecraft 1.21.11 que treina vocabulário coreano e japonês com os itens do seu inventário e com os mobs do jogo. Quem perde o desafio perde itens ou recebe um mob em cima da cabeça. Quem mantém uma sequência de acertos gira uma roleta de prêmios.
+Mod para Fabric, NeoForge e Forge, no Minecraft 1.21.11, que treina vocabulário coreano e japonês com os itens do seu inventário e com os mobs do jogo. Quem perde o desafio perde itens ou recebe um mob em cima da cabeça. Quem mantém uma sequência de acertos gira uma roleta de prêmios.
 
 ## Instalação
 
+Use o `.jar` do seu loader e nenhum dos outros.
+
+**Fabric**
+
 1. Instale o [Fabric Loader](https://fabricmc.net/use/installer/) para o Minecraft 1.21.11.
 2. Baixe a [Fabric API](https://modrinth.com/mod/fabric-api) para 1.21.11 e coloque na pasta `mods`.
-3. Coloque `langcraft-1.0.0.jar` (em `build/libs`) na mesma pasta.
+3. Coloque `langcraft-fabric-1.0.0.jar` (em `fabric/build/libs`) na mesma pasta.
 4. Opcional: coloque também o [Mod Menu](https://modrinth.com/mod/modmenu) 17.0.1, que adiciona o botão **Mods** e a engrenagem da configuração.
 5. Abra o jogo com o perfil Fabric 1.21.11.
+
+**NeoForge**
+
+1. Instale o [NeoForge](https://neoforged.net/) 21.11 para o Minecraft 1.21.11.
+2. Coloque `langcraft-neoforge-1.0.0.jar` (em `neoforge/build/libs`) na pasta `mods`.
+
+**Forge**
+
+1. Instale o [Forge](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.21.11.html) 61 para o Minecraft 1.21.11.
+2. Coloque `langcraft-forge-1.0.0.jar` (em `forge/build/libs`) na pasta `mods`. O arquivo terminado em `-slim` não leva as bibliotecas de voz e não serve para jogar.
+
+No NeoForge e no Forge, a configuração abre pelo botão **Config** da lista de mods.
 
 Funciona em Windows e em Linux de 64 bits (x86-64). No Linux, a opção recomendada é **Entrada do sistema**, que segue o microfone escolhido nas configurações do seu desktop. Os microfones vêm do PulseAudio ou do PipeWire, com os mesmos nomes das configurações do sistema, por meio dos comandos `pactl` e `parec` (pacote `pulseaudio-utils` ou `libpulse`). Sem esses comandos, como em um launcher Flatpak sem acesso a eles, o mod usa o ALSA, que só mostra as placas de som, com nomes como `[plughw:0,0]`.
 
@@ -65,8 +81,8 @@ O erro funciona de um jeito diferente em cada minigame:
 
 - **Desafio de item:** se você perder, uma roleta define quanto da pilha é perdido, de 1 item até a pilha inteira. Uma pilha de 1 item é perdida direto, sem roleta.
 - **Desafio de mob:** se você perder, o mob perguntado nasce em cima de você, de uma galinha até o Warden (2% de chance).
-- **Todo erro custa mais:** além disso, você perde 2 níveis de experiência e fica lento e fraco por 20 segundos. Cada erro seguido multiplica esses valores, tira a fatia mais leve da roleta de itens e aumenta a quantidade de mobs, até 3.
-- **Roleta de desastre:** a cada 3 erros seguidos, ela substitui a roleta de itens: nenhum nível, sem armadura, sem hotbar, sem metade do inventário, um chefe, a morte ou a perda de todos os itens.
+- **Todo erro custa mais:** além disso, você perde 2 níveis de experiência. Cada erro seguido multiplica esse valor, tira a fatia mais leve da roleta de itens e aumenta a quantidade de mobs, até 3.
+- **Roleta de desastre:** a cada 3 erros seguidos, ela substitui a roleta de itens: nenhum nível, sem armadura, sem hotbar, sem metade do inventário, um chefe, a morte ou a perda de todos os itens. Ela também deixa você lento e fraco por 60 segundos, e isso piora a cada desastre da mesma sequência, até 180 segundos e nível III.
 - **Roleta diária:** cada erro tem 35% de chance de abrir esta roleta no lugar do castigo comum, no máximo uma vez por dia do jogo. Pode tirar 3 pilhas ou metade dos níveis, trazer 3 monstros, amaldiçoar, desgastar o equipamento ou deixar você com um coração. Há 3% de chance de escapar.
 - **Roleta invertida:** a cada 5 acertos seguidos, uma roleta dá itens de uma pilha do seu inventário, de +1 até dobrar a pilha, e você ganha um escudo.
 - **Escudos:** cada um cancela o castigo de um erro comum, até um máximo de 3. Eles não seguram as roletas de desastre e diária.
@@ -190,7 +206,8 @@ O Mod Menu é opcional. Sem ele, ou para ajustes que a tela não mostra, como as
 | `rewardRouletteEnabled`, `rewardStreak` | `true`, 5 | Liga a roleta de prêmios e define a sequência exigida |
 | `rewardFallbackLevels` | 5 | Níveis dados quando não há item empilhável |
 | `rewardBlockedItems` | vazio | Itens que a roleta de prêmios não pode dar, como `minecraft:netherite_block` |
-| `lossLevelsPerError`, `lossDebuffSeconds` | 2, 20 | Níveis e segundos de lentidão e fraqueza por erro, vezes os erros seguidos |
+| `lossLevelsPerError` | 2 | Níveis perdidos por erro, vezes os erros seguidos |
+| `disasterDebuffSeconds` | 60 | Segundos de lentidão e fraqueza do desastre, vezes os desastres da mesma sequência |
 | `disasterStreak`, `disasterSlices` | 3, ver acima | Erros seguidos da roleta de desastre e suas fatias. Zero desliga |
 | `dailyRouletteEnabled`, `dailySlices` | `true`, ver acima | Liga a roleta diária e define suas fatias |
 | `dailyChancePercent` | 35 | Chance de um erro abrir a roleta diária, se ela ainda não saiu naquele dia |
@@ -207,28 +224,46 @@ Chances padrão de mob: inofensivos 40%, neutros 25%, hostis 22%, perigosos 11%,
 
 ## Desenvolvimento
 
-É preciso ter o Java 21, indicado em `JAVA_HOME`.
+É preciso ter o Java 21, indicado em `JAVA_HOME`. O ForgeGradle também usa o Java 25 para preparar o Minecraft, e o Gradle baixa essa versão sozinho se ela faltar.
+
+O código fica em quatro módulos. `common` tem tudo o que é igual nos três loaders, e `fabric`, `neoforge` e `forge` têm só a ligação com cada um, por meio da interface `Platform` e dos métodos de `LangCraftClient`. Cada loader compila o código de `common` junto com o seu.
+
+Gera os três `.jar` e roda os testes:
 
 ```bash
 ./gradlew build
 ```
 
+Roda só os testes unitários, que ficam em `common`:
+
 ```bash
-./gradlew test
+./gradlew :common:test
+```
+
+Abre o jogo em cada loader:
+
+```bash
+./gradlew :fabric:runClient
 ```
 
 ```bash
-./gradlew runClient
+./gradlew :neoforge:runClient
 ```
 
 ```bash
-./gradlew runClientGameTest
+./gradlew :forge:runClient
+```
+
+A bateria que abre o jogo e percorre os cenários existe só no Fabric, porque usa a Fabric API:
+
+```bash
+./gradlew :fabric:runClientGameTest
 ```
 
 ```bash
-./gradlew runProductionGameTest
+./gradlew :fabric:runProductionGameTest
 ```
 
-Os dois últimos comandos abrem o jogo e percorrem os cenários automaticamente: `runClientGameTest` no ambiente de desenvolvimento, com capturas de tela em `build/run/clientGameTest/screenshots`, e `runProductionGameTest` com o `.jar` final. Eles também baixam os modelos de voz e abrem o microfone por alguns instantes.
+`runClientGameTest` roda no ambiente de desenvolvimento, com capturas de tela em `fabric/build/run/clientGameTest/screenshots`, e `runProductionGameTest` usa o `.jar` final. Eles também baixam os modelos de voz e abrem o microfone por alguns instantes.
 
-Para medir o reconhecimento, coloque amostras em `build/run/clientGameTest/voice-samples/<idioma>/`, com arquivos `0.wav`, `1.wav` e assim por diante, mais um `expected.txt` com uma resposta por linha. O `runClientGameTest` passa a usá-las.
+Para medir o reconhecimento, coloque amostras em `fabric/build/run/clientGameTest/voice-samples/<idioma>/`, com arquivos `0.wav`, `1.wav` e assim por diante, mais um `expected.txt` com uma resposta por linha. O `runClientGameTest` passa a usá-las.

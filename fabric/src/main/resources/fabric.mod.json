@@ -1,0 +1,24 @@
+{
+	"schemaVersion": 1,
+	"id": "langcraft",
+	"version": "${version}",
+	"name": "LangCraft",
+	"description": "Practice Korean, Japanese, English, German and Spanish vocabulary with the items in your inventory. Lose a challenge and you pay for it.",
+	"authors": ["RicardoFernandes2004"],
+	"license": "MIT",
+	"environment": "*",
+	"entrypoints": {
+		"main": ["dev.langcraft.fabric.LangCraftFabric"],
+		"client": ["dev.langcraft.fabric.LangCraftFabricClient"],
+		"modmenu": ["dev.langcraft.fabric.ModMenuIntegration"]
+	},
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"modmenu": "*"
+	}
+}

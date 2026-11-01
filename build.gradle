@@ -1,129 +1,43 @@
 plugins {
-	id 'fabric-loom' version "${loom_version}"
+	id 'fabric-loom' version "${loom_version}" apply false
+	id 'net.neoforged.moddev' version "${moddev_version}" apply false
 }
 
-version = project.version
-group = project.group
+subprojects {
+	group = rootProject.group
+	version = rootProject.version
 
-base {
-	archivesName = project.archives_base_name
-}
+	apply plugin: 'java'
 
-repositories {
-	mavenCentral()
-	maven {
-		name = 'TerraformersMC'
-		url = 'https://maven.terraformersmc.com/releases/'
+	base {
+		archivesName = "${rootProject.archives_base_name}-${project.name}"
 	}
-}
 
-loom {
-	splitEnvironmentSourceSets()
+	repositories {
+		mavenCentral()
+	}
 
-	mods {
-		"langcraft" {
-			sourceSet sourceSets.main
-			sourceSet sourceSets.client
+	java {
+		sourceCompatibility = JavaVersion.VERSION_21
+		targetCompatibility = JavaVersion.VERSION_21
+	}
+
+	tasks.withType(JavaCompile).configureEach {
+		it.options.release = 21
+		it.options.encoding = 'UTF-8'
+	}
+
+	// Cada loader compila o código de common junto com o seu, contra o próprio Minecraft dele.
+	if (project.name != 'common') {
+		sourceSets.main.java.srcDir rootProject.file('common/src/main/java')
+		sourceSets.main.resources.srcDir rootProject.file('common/src/main/resources')
+
+		tasks.named('processResources') {
+			def props = [version: project.version]
+			inputs.properties(props)
+			filesMatching(['fabric.mod.json', 'META-INF/neoforge.mods.toml', 'META-INF/mods.toml']) {
+				expand props
+			}
 		}
 	}
-}
-
-// Testes que abrem o jogo de verdade: gradlew runClientGameTest
-fabricApi {
-	configureTests {
-		createSourceSet = true
-		modId = "langcraft-test"
-		enableGameTests = false
-		enableClientGameTests = true
-		eula = false
-		clearRunDirectory = false
-	}
-}
-
-dependencies {
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings loom.officialMojangMappings()
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-
-	// Opcional: é o Mod Menu que mostra a engrenagem da tela de configuração.
-	modCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
-	modLocalRuntime "com.terraformersmc:modmenu:${project.modmenu_version}"
-
-	// Reconhecimento de voz offline. O JNA fica de fora porque o Minecraft ja traz o dele.
-	clientImplementation("com.alphacephei:vosk:${project.vosk_version}") { transitive = false }
-	include("com.alphacephei:vosk:${project.vosk_version}") { transitive = false }
-
-	// Reconhecimento mais resistente a ruido, usado no coreano.
-	clientImplementation "io.github.givimad:whisper-jni:${project.whisper_jni_version}"
-	include "io.github.givimad:whisper-jni:${project.whisper_jni_version}"
-
-	// Leitura em katakana para comparar respostas em japones.
-	clientImplementation "com.atilika.kuromoji:kuromoji-ipadic:${project.kuromoji_version}"
-	include "com.atilika.kuromoji:kuromoji-ipadic:${project.kuromoji_version}"
-	include "com.atilika.kuromoji:kuromoji-core:${project.kuromoji_version}"
-
-	testImplementation "org.junit.jupiter:junit-jupiter:${project.junit_version}"
-	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
-	testImplementation sourceSets.client.output
-	testImplementation "com.atilika.kuromoji:kuromoji-ipadic:${project.kuromoji_version}"
-	testImplementation("com.alphacephei:vosk:${project.vosk_version}") { transitive = false }
-	testImplementation "io.github.givimad:whisper-jni:${project.whisper_jni_version}"
-}
-
-test {
-	useJUnitPlatform()
-	systemProperty "jna.encoding", "UTF-8"
-}
-
-processResources {
-	def version = project.version
-	inputs.property "version", version
-
-	filesMatching("fabric.mod.json") {
-		expand "version": version
-	}
-}
-
-tasks.withType(JavaCompile).configureEach {
-	it.options.release = 21
-	it.options.encoding = "UTF-8"
-}
-
-java {
-	sourceCompatibility = JavaVersion.VERSION_21
-	targetCompatibility = JavaVersion.VERSION_21
-}
-
-// Roda a mesma bateria com o .jar final, como em uma instalação real: gradlew runProductionGameTest
-configurations {
-	productionMods {
-		transitive = false
-	}
-}
-
-dependencies {
-	productionMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-	// O fabric-api publicado não inclui o módulo que executa os testes de cliente.
-	productionMods fabricApi.module("fabric-client-gametest-api-v1", project.fabric_api_version)
-	productionMods "com.terraformersmc:modmenu:${project.modmenu_version}"
-}
-
-def gametestJar = tasks.register("gametestJar", Jar) {
-	from sourceSets.gametest.output
-	archiveClassifier = "gametest-dev"
-}
-
-def remapGametestJar = tasks.register("remapGametestJar", net.fabricmc.loom.task.RemapJarTask) {
-	inputFile = gametestJar.flatMap { it.archiveFile }
-	archiveClassifier = "gametest"
-	addNestedDependencies = false
-}
-
-tasks.register("runProductionGameTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
-	mods.from(remapJar)
-	mods.from(remapGametestJar)
-	mods.from(configurations.productionMods)
-	jvmArgs.add("-Dfabric.client.gametest")
-	runDir = file("build/run/clientProduction")
 }

@@ -10,7 +10,7 @@ from pathlib import Path
 
 from PIL import Image
 
-OUT = Path(__file__).resolve().parent.parent / "src/main/resources/assets/langcraft/textures/gui/sprites/theme"
+OUT = Path(__file__).resolve().parent.parent / "common/src/main/resources/assets/langcraft/textures/gui/sprites/theme"
 
 
 def rgb(hex_color, alpha=255):

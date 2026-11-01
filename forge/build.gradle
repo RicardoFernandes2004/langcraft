@@ -1,0 +1,62 @@
+plugins {
+	id 'net.minecraftforge.gradle' version '[7.0.29,8.0)'
+	id 'net.minecraftforge.jarjar' version '0.2.3'
+}
+
+minecraft {
+	mappings channel: 'official', version: minecraft_version
+
+	runs {
+		configureEach {
+			workingDir = layout.projectDirectory.dir('run')
+		}
+
+		register('client')
+
+		register('server') {
+			args '--nogui'
+		}
+
+		register('gameTestServer')
+
+		register('data') {
+			args '--mod', 'langcraft', '--all', '--output', layout.buildDirectory.dir('datagen').get().asFile
+		}
+	}
+}
+
+repositories {
+	minecraft.mavenizer(it)
+	maven fg.forgeMaven
+	maven fg.minecraftLibsMaven
+}
+
+// O .jar final é o da tarefa jarJar, com as bibliotecas dentro.
+jarJar.register()
+
+tasks.named('jar') {
+	archiveClassifier = 'slim'
+}
+
+tasks.named('jarJar') {
+	archiveClassifier = null
+}
+
+tasks.named('assemble') {
+	dependsOn 'jarJar'
+}
+
+dependencies {
+	implementation minecraft.dependency("net.minecraftforge:forge:${minecraft_version}-${forge_version}")
+	annotationProcessor 'net.minecraftforge:eventbus-validator:7.0.5'
+
+	[
+		"com.alphacephei:vosk:${vosk_version}",
+		"io.github.givimad:whisper-jni:${whisper_jni_version}",
+		"com.atilika.kuromoji:kuromoji-ipadic:${kuromoji_version}",
+		"com.atilika.kuromoji:kuromoji-core:${kuromoji_version}"
+	].each { notation ->
+		implementation(notation) { transitive = false }
+		jarJar(notation) { transitive = false }
+	}
+}

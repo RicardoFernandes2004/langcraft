@@ -1,0 +1,24 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "MIT"
+
+[[mods]]
+modId = "langcraft"
+version = "${version}"
+displayName = "LangCraft"
+authors = "RicardoFernandes2004"
+description = '''Practice Korean, Japanese, English, German and Spanish vocabulary with the items in your inventory. Lose a challenge and you pay for it.'''
+
+[[dependencies.langcraft]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.11,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.langcraft]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.11,1.22)"
+ordering = "NONE"
+side = "BOTH"

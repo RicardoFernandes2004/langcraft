@@ -9,4 +9,11 @@ pluginManagement {
 	}
 }
 
+// O ForgeGradle 7 precisa do Java 25 para preparar o Minecraft e baixa sozinho, se faltar.
+plugins {
+	id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
 rootProject.name = 'langcraft'
+
+include 'common', 'fabric', 'neoforge', 'forge'
