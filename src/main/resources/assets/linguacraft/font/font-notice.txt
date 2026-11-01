@@ -1,4 +1,0 @@
-hangul.ttf is a modified version of Noto Sans KR Bold, reduced to Hangul characters and renamed
-"LinguaCraft Hangul". japanese.ttf is a modified version of Noto Sans JP Bold, reduced to kana and
-kanji and renamed "LinguaCraft Japanese". Copyright 2014-2021 Adobe (http://www.adobe.com/).
-Licensed under the SIL Open Font License 1.1. See ofl.txt.

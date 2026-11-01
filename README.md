@@ -1,4 +1,4 @@
-# LinguaCraft
+# LangCraft
 
 Mod Fabric para Minecraft 1.21.11 que treina vocabulário coreano e japonês com os itens do seu inventário e com os mobs do jogo. Quem perde o desafio perde itens ou recebe um mob em cima da cabeça. Quem mantém uma sequência de acertos gira uma roleta de prêmios.
 
@@ -6,7 +6,7 @@ Mod Fabric para Minecraft 1.21.11 que treina vocabulário coreano e japonês com
 
 1. Instale o [Fabric Loader](https://fabricmc.net/use/installer/) para o Minecraft 1.21.11.
 2. Baixe a [Fabric API](https://modrinth.com/mod/fabric-api) para 1.21.11 e coloque na pasta `mods`.
-3. Coloque `linguacraft-1.0.0.jar` (em `build/libs`) na mesma pasta.
+3. Coloque `langcraft-1.0.0.jar` (em `build/libs`) na mesma pasta.
 4. Opcional: coloque também o [Mod Menu](https://modrinth.com/mod/modmenu) 17.0.1, que adiciona o botão **Mods** e a engrenagem da configuração.
 5. Abra o jogo com o perfil Fabric 1.21.11.
 
@@ -16,14 +16,14 @@ Em servidores, o mod precisa estar no servidor e no jogo de cada jogador. Jogado
 
 ## Primeira entrada no mundo
 
-1. Na primeira vez, uma tela pede o tema visual, com uma amostra de cada um. A escolha vale para o jogo todo, em qualquer mundo.
+1. Uma tela pede o tema visual, com uma amostra de cada um. Cada mundo tem o seu tema, então essa tela aparece na primeira entrada em cada mundo.
 2. Uma tela pergunta quais idiomas você quer praticar: coreano, japonês, inglês, alemão ou espanhol. Dá para marcar quantos quiser, e cada desafio sorteia um deles. A escolha fica salva por jogador em cada mundo.
 3. Outra tela lista os microfones do computador, com o padrão do sistema em primeiro lugar. Se o microfone escolhido sumir depois, o mod usa o padrão.
 4. Se o modelo de voz ainda não foi baixado, uma tela mostra o progresso e fecha sozinha ao terminar. Dá para continuar sem esperar, o que pula o teste. Se o download falhar, a tela oferece tentar de novo ou continuar sem voz, só com digitação.
 5. Uma palavra de teste aparece em cada idioma escolhido, com a barra de volume do microfone e o que foi entendido. Errar não tem punição, e dá para trocar de microfone ou pular o teste.
 6. Só depois disso os desafios começam a contar.
 
-Trocar de idioma com `/lingua idioma` segue o mesmo caminho: se faltar o modelo, a tela de download aparece. Durante um desafio ou depois de "Continuar sem esperar", uma barra no canto da tela continua mostrando o progresso.
+Trocar de idioma com `/lang language` segue o mesmo caminho: se faltar o modelo, a tela de download aparece. Durante um desafio ou depois de "Continuar sem esperar", uma barra no canto da tela continua mostrando o progresso.
 
 A voz em inglês, alemão e espanhol usa só o Vosk e ainda não foi medida com gravações de nativos, ao contrário do coreano e do japonês. Na digitação, esses idiomas aceitam a escrita sem acento, e o alemão aceita `ae`, `oe`, `ue` e `ss`. O treino do alfabeto só existe para o coreano e o japonês.
 
@@ -39,7 +39,15 @@ A voz em inglês, alemão e espanhol usa só o Vosk e ainda não foi medida com 
 | Dancheong | Verde, vermelhão e as cinco cores dos templos coreanos |
 | Festival Noturno | Índigo com ondas, viga de torii e botões cor de lanterna |
 
-Troque com `/lingua tema` ou na tela de configuração. O tema marcado já aparece na própria tela, e só fica salvo ao confirmar. As texturas são geradas por `tools/generate_theme_sprites.py`, que precisa do Pillow.
+Troque com `/lang theme` ou na tela de configuração, dentro do mundo. O tema marcado já aparece na própria tela, e só fica salvo ao confirmar. Em um mundo próprio, ele fica na pasta do mundo. Em um servidor, fica em `config/langcraft/theme/<endereço>.json`. As texturas são geradas por `tools/generate_theme_sprites.py`, que precisa do Pillow.
+
+## Outros mods
+
+O LangCraft funciona com outros mods sem nenhuma biblioteca de conexão. O ícone e o nome vêm do próprio jogo, então itens e mobs de um mod com tradução no idioma já entram nos desafios e no caderno.
+
+- **Sem tradução:** o item não é sorteado. `/lang missing` cria `config/langcraft/translations/<idioma>.json` com tudo o que falta nos seus idiomas. Preencha `translation`, à mão ou com um tradutor, e entre de novo no mundo. Esse arquivo tem prioridade, então também serve para corrigir uma tradução ruim, e pode ser compartilhado com outros jogadores. No verso do flashcard, essas palavras aparecem como tradução da comunidade.
+- **Mobs:** mobs de outros mods com ovo de invocação entram sozinhos nas categorias de sorteio, pelo tipo e pela vida. Para tirar um chefe, use `blockedMobs`. Para desligar, use `includeModMobs`.
+- **Fala:** fora do coreano, se o modelo de voz não conhecer uma palavra do nome, o desafio sorteado vira popup. Pedindo por comando, ele continua sendo de fala.
 
 ## Minigames
 
@@ -63,7 +71,7 @@ Os dois intervalos só contam enquanto você está livre: param durante um desaf
 
 ## Títulos
 
-Cada jogador tem um título antes do nome, visível para todos, inclusive na lista de jogadores e no chat. Ele sobe com os desafios vencidos: Novato (0), Aprendiz (25), Estudante (100), Poliglota (250), Tradutor (500) e Mestre das Línguas (1000). Quando alguém sobe de título, todos veem um aviso no chat. `/lingua titulos` mostra a lista e quanto falta. Os flashcards não contam, porque é o próprio jogador que marca o acerto.
+Cada jogador tem um título antes do nome, visível para todos, inclusive na lista de jogadores e no chat. Ele sobe com os desafios vencidos: Novato (0), Aprendiz (25), Estudante (100), Poliglota (250), Tradutor (500) e Mestre das Línguas (1000). Quando alguém sobe de título, todos veem um aviso no chat. `/lang titles` mostra a lista e quanto falta. Os flashcards não contam, porque é o próprio jogador que marca o acerto.
 
 A lista do Tab funciona como ranking de quem está online: mostra o total de desafios vencidos ao lado do nome, com quem venceu mais em cima, e empates em ordem alfabética.
 
@@ -77,21 +85,21 @@ O canto superior esquerdo mostra o título, a sequência atual, o recorde, o tot
 
 Cada palavra de um desafio terminado entra nos seus flashcards, com a contagem de acertos e erros e a última resposta errada, seja falada, digitada ou clicada.
 
-As palavras são de cada mundo, então um mundo novo começa sem nenhuma. Em um mundo próprio, elas ficam em `saves/<mundo>/linguacraft/flashcards.json` e são apagadas com ele. Em um servidor, ficam em `config/linguacraft/flashcards/<endereço>.json`.
+As palavras são de cada mundo, então um mundo novo começa sem nenhuma. Em um mundo próprio, elas ficam em `saves/<mundo>/langcraft/flashcards.json` e são apagadas com ele. Em um servidor, ficam em `config/langcraft/flashcards/<endereço>.json`.
 
-Para estudar, aperte `K`, use `/lingua estudar` ou abra pela configuração dentro de um mundo. Você vê a palavra, tenta lembrar, mostra a resposta e marca **Acertei** ou **Errei**. As palavras em que você mais erra vêm primeiro, e as marcadas como erradas voltam no fim da rodada. Dá para filtrar por idioma e começar pelo português.
+Para estudar, aperte `K`, use `/lang study` ou abra pela configuração dentro de um mundo. Você vê a palavra, tenta lembrar, mostra a resposta e marca **Acertei** ou **Errei**. As palavras em que você mais erra vêm primeiro, e as marcadas como erradas voltam no fim da rodada. Dá para filtrar por idioma e começar pelo português.
 
 Os flashcards usam repetição espaçada: a rodada só traz as palavras que chegaram na hora, contada em dias reais. Cada acerto seguido afasta a próxima revisão para 1, 3, 7, 14, 30 e 60 dias, e o botão **Acertei** mostra esse prazo. Errar no estudo recomeça a contagem e traz a palavra de volta. Perder um desafio também traz a palavra para agora, voltando um passo, enquanto vencer não muda a data. **Revisar mesmo assim** mostra todas as palavras quando não há nada na hora, sem encurtar os prazos, a não ser que você erre.
 
-O botão **Lista** na tela de estudo, ou `/lingua palavras`, mostra todas as palavras do mundo, das mais recentes para as mais antigas, com a leitura e o significado. Os acertos e erros aparecem separados por tipo de resposta: **Fala**, **Escrita** (digitada na caixa do alerta), **Quiz** e **Mão** (Pegue na mão).
+O botão **Lista** na tela de estudo, ou `/lang words`, mostra todas as palavras do mundo, das mais recentes para as mais antigas, com a leitura e o significado. Os acertos e erros aparecem separados por tipo de resposta: **Fala**, **Escrita** (digitada na caixa do alerta), **Quiz** e **Mão** (Pegue na mão).
 
-Estudar não muda o placar, e as palavras continuam podendo cair nos desafios. Nenhum desafio começa enquanto uma tela de estudo está aberta. Essas telas têm sempre o visual de caderno, não importa o tema escolhido.
+O caderno só mostra os idiomas que você escolheu. As palavras de um idioma que você deixou de estudar ficam guardadas e voltam se você o escolher de novo. Estudar não muda o placar, e as palavras continuam podendo cair nos desafios. Nenhum desafio começa enquanto uma tela de estudo está aberta. Essas telas têm sempre o visual de caderno, não importa o tema escolhido.
 
 Um sininho avisa quando um desafio começa. O caderno faz som de folha ao abrir, ao trocar de tela e ao fechar. Esses sons seguem o volume de interface do jogo.
 
 ## Alfabeto
 
-O botão **Alfabeto** na tela de estudo, ou `/lingua alfabeto`, abre uma tabela com as letras do idioma:
+O botão **Alfabeto** na tela de estudo, ou `/lang alphabet`, abre uma tabela com as letras do idioma:
 
 - **Coreano:** consoantes, consoantes duplas, vogais e vogais compostas.
 - **Japonês:** hiragana e katakana, cada um com o básico, os sinais (como が e ぱ) e as junções (como きゃ).
@@ -100,18 +108,21 @@ Clique em uma letra para ver a leitura e uma dica de pronúncia. A barra de cada
 
 ## Comandos
 
-A cada entrada no mundo, um aviso no chat lembra a tecla do caderno e o `/lingua`, que lista todos os comandos.
+A cada entrada no mundo, um aviso no chat lembra a tecla do caderno e o `/lang`, que lista os comandos.
 
-- `/lingua desafio [item|mob] [fala|quiz|segurar]`: inicia um desafio agora. `segurar` só funciona com `item` e precisa de um item que não esteja na sua mão.
-- `/lingua tema`: abre a tela de escolha do tema.
-- `/lingua idioma`: abre a tela de escolha do idioma.
-- `/lingua idioma <coreano|japones|ingles|alemao|espanhol|ambos|todos>`: escolhe direto. `ambos` é coreano e japonês. Para outra combinação, use a tela.
-- `/lingua config`: abre a tela de configuração, a mesma da engrenagem do Mod Menu.
-- `/lingua estudar`: abre os flashcards.
-- `/lingua palavras`: abre a lista de palavras do mundo.
-- `/lingua alfabeto`: abre o treino do alfabeto.
-- `/lingua titulos`: lista os títulos e mostra quanto falta para o próximo.
-- `/lingua ligar [itens|mobs]` e `/lingua desligar [itens|mobs]`: ligam e desligam os desafios automáticos.
+`/lang challenge`, `/lang on` e `/lang off` são só para administradores, com permissão de nível 2. Em um mundo próprio, é preciso estar com os comandos (cheats) ligados.
+
+- `/lang challenge [item|mob] [speak|quiz|hold]`: inicia um desafio agora. `segurar` só funciona com `item` e precisa de um item que não esteja na sua mão.
+- `/lang theme`: abre a tela de escolha do tema.
+- `/lang language`: abre a tela de escolha do idioma.
+- `/lang language <korean|japanese|english|german|spanish|both|all>`: escolhe direto. `ambos` é coreano e japonês. Para outra combinação, use a tela.
+- `/lang config`: abre a tela de configuração, a mesma da engrenagem do Mod Menu.
+- `/lang study`: abre os flashcards.
+- `/lang words`: abre a lista de palavras do mundo.
+- `/lang alphabet`: abre o treino do alfabeto.
+- `/lang titles`: lista os títulos e mostra quanto falta para o próximo.
+- `/lang missing`: lista os itens e mobs sem tradução nos seus idiomas e cria o arquivo para preencher.
+- `/lang on [items|mobs]` e `/lang off [items|mobs]`: ligam e desligam os desafios automáticos.
 
 ## Furigana
 
@@ -121,11 +132,11 @@ As leituras vêm do dicionário Kuromoji, com uma tabela de correções para os 
 
 ## Fonte
 
-O hangul usa a fonte "LinguaCraft Hangul", uma versão reduzida da Noto Sans KR Bold, e o japonês usa a "LinguaCraft Japanese", uma versão reduzida da Noto Sans JP Bold (ambas Copyright 2014-2021 Adobe), distribuídas sob a SIL Open Font License 1.1. As duas valem para todo o texto do jogo nesses alfabetos, e não só para o mod. A licença e o aviso de modificação estão em `assets/linguacraft/font/`.
+O hangul usa a fonte "LangCraft Hangul", uma versão reduzida da Noto Sans KR Bold, e o japonês usa a "LangCraft Japanese", uma versão reduzida da Noto Sans JP Bold (ambas Copyright 2014-2021 Adobe), distribuídas sob a SIL Open Font License 1.1. As duas valem para todo o texto do jogo nesses alfabetos, e não só para o mod. A licença e o aviso de modificação estão em `assets/langcraft/font/`.
 
 ## Reconhecimento de voz
 
-O reconhecimento é offline, com [Vosk](https://alphacephei.com/vosk/) e, no coreano, também com [Whisper](https://github.com/ggerganov/whisper.cpp). O mod baixa os modelos para `config/linguacraft/models/` depois da escolha do idioma (160 MB para coreano, 48 MB para japonês, e mais espaço depois de extraídos). O microfone só fica aberto durante um alerta de fala.
+O reconhecimento é offline, com [Vosk](https://alphacephei.com/vosk/) e, no coreano, também com [Whisper](https://github.com/ggerganov/whisper.cpp). O mod baixa os modelos para `config/langcraft/models/` depois da escolha do idioma (160 MB para coreano, 48 MB para japonês, e mais espaço depois de extraídos). O microfone só fica aberto durante um alerta de fala.
 
 Vários reconhecedores ouvem ao mesmo tempo, e qualquer um pode acertar: o Vosk com fala livre, o Vosk restrito à resposta e a 30 nomes do jogo e, no coreano, o Whisper, que resiste melhor a ruído e a volume baixo. No coreano, só a palavra vale: `광부 사과` não acerta `사과`. Cada resultado fica registrado no log com o prefixo `[voz]`.
 
@@ -144,18 +155,18 @@ Digitar em coreano ou japonês exige o teclado desse idioma instalado no sistema
 
 ### Como testar sua voz
 
-1. Em um mundo de teste, use `/lingua idioma coreano`.
+1. Em um mundo de teste, use `/lang language korean`.
 2. Dê a si mesmo um item de nome simples: `/give @s minecraft:stone 8`.
-3. Use `/lingua desafio item fala` e espere o alerta mostrar "Ouvindo...".
+3. Use `/lang challenge item speak` e espere o alerta mostrar "Ouvindo...".
 4. Fale a palavra do alerta. O alerta mostra "Ouvi: ..." com o que foi entendido.
-5. Se a resposta ficar perto mas não passar, baixe `voiceSimilarity` em `config/linguacraft.json`.
-6. Repita com `/lingua idioma japones`, e com nomes mais longos, como os de ferramentas de diamante.
+5. Se a resposta ficar perto mas não passar, baixe `voiceSimilarity` em `config/langcraft.json`.
+6. Repita com `/lang language japanese`, e com nomes mais longos, como os de ferramentas de diamante.
 
 ## Configuração
 
-Com o [Mod Menu](https://modrinth.com/mod/modmenu) instalado, clique em **Mods**, escolha o LinguaCraft e clique na **engrenagem**. Essa tela troca e testa o microfone e ajusta exigência da fala, furigana, intervalos, tempos e roleta invertida. Tudo é salvo ao fechar. Em um servidor dedicado, os intervalos, os tempos e a roleta seguem o arquivo do servidor.
+Com o [Mod Menu](https://modrinth.com/mod/modmenu) instalado, clique em **Mods**, escolha o LangCraft e clique na **engrenagem**. Essa tela troca e testa o microfone e ajusta exigência da fala, furigana, intervalos, tempos e roleta invertida. Tudo é salvo ao fechar. Em um servidor dedicado, os intervalos, os tempos e a roleta seguem o arquivo do servidor.
 
-O Mod Menu é opcional. Sem ele, ou para ajustes que a tela não mostra, como as chances das roletas e dos mobs, edite `config/linguacraft.json` e reinicie o jogo.
+O Mod Menu é opcional. Sem ele, ou para ajustes que a tela não mostra, como as chances das roletas e dos mobs, edite `config/langcraft.json` e reinicie o jogo.
 
 | Ajuste | Padrão | Significado |
 |---|---|---|
@@ -174,6 +185,8 @@ O Mod Menu é opcional. Sem ele, ou para ajustes que a tela não mostra, como as
 | `rewardFallbackLevels` | 5 | Níveis dados quando não há item empilhável |
 | `rewardBlockedItems` | vazio | Itens que a roleta de prêmios não pode dar, como `minecraft:netherite_block` |
 | `mobTiers` | ver abaixo | Categorias de mob, com chance e lista |
+| `includeModMobs` | `true` | Coloca os mobs de outros mods nas categorias |
+| `blockedMobs` | vazio | Mobs que nunca são sorteados, como `botania:doppleganger` |
 
 Chances padrão das roletas: 1 item 25%, 25% da pilha 25%, 50% da pilha 20%, 75% da pilha 15%, pilha inteira 15%.
 

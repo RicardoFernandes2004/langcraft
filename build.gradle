@@ -21,7 +21,7 @@ loom {
 	splitEnvironmentSourceSets()
 
 	mods {
-		"linguacraft" {
+		"langcraft" {
 			sourceSet sourceSets.main
 			sourceSet sourceSets.client
 		}
@@ -32,7 +32,7 @@ loom {
 fabricApi {
 	configureTests {
 		createSourceSet = true
-		modId = "linguacraft-test"
+		modId = "langcraft-test"
 		enableGameTests = false
 		enableClientGameTests = true
 		eula = false

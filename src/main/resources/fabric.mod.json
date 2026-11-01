@@ -1,16 +1,16 @@
 {
 	"schemaVersion": 1,
-	"id": "linguacraft",
+	"id": "langcraft",
 	"version": "${version}",
-	"name": "LinguaCraft",
-	"description": "Pratique vocabulário coreano e japonês com os itens do seu inventário. Quem perde os desafios paga caro.",
+	"name": "LangCraft",
+	"description": "Practice Korean, Japanese, English, German and Spanish vocabulary with the items in your inventory. Lose a challenge and you pay for it.",
 	"authors": ["RicardoFernandes2004"],
 	"license": "MIT",
 	"environment": "*",
 	"entrypoints": {
-		"main": ["dev.linguacraft.LinguaCraft"],
-		"client": ["dev.linguacraft.client.LinguaCraftClient"],
-		"modmenu": ["dev.linguacraft.client.compat.ModMenuIntegration"]
+		"main": ["dev.langcraft.LangCraft"],
+		"client": ["dev.langcraft.client.LangCraftClient"],
+		"modmenu": ["dev.langcraft.client.compat.ModMenuIntegration"]
 	},
 	"depends": {
 		"fabricloader": ">=0.20.1",

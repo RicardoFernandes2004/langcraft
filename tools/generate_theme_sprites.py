@@ -1,4 +1,4 @@
-"""Gera as texturas dos temas em assets/linguacraft/textures/gui/sprites/theme.
+"""Gera as texturas dos temas em assets/langcraft/textures/gui/sprites/theme.
 
 Rode com: python tools/generate_theme_sprites.py
 O sorteio usa sementes fixas, então o resultado é sempre igual.
@@ -10,7 +10,7 @@ from pathlib import Path
 
 from PIL import Image
 
-OUT = Path(__file__).resolve().parent.parent / "src/main/resources/assets/linguacraft/textures/gui/sprites/theme"
+OUT = Path(__file__).resolve().parent.parent / "src/main/resources/assets/langcraft/textures/gui/sprites/theme"
 
 
 def rgb(hex_color, alpha=255):
