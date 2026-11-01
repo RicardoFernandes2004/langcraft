@@ -31,8 +31,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.Nullable;
 
 /** Controla, no servidor, o momento dos desafios, os prazos, as roletas e as consequências. */
@@ -42,6 +45,7 @@ public final class ChallengeManager {
 	private static final int NOTHING_TO_ASK_RETRY_TICKS = 10 * TICKS_PER_SECOND;
 	/** Duração da animação da roleta. Os itens só mudam quando ela termina. */
 	private static final int SPIN_TICKS = 80;
+	private static final int TICKS_PER_DAY = 24000;
 
 	private final LangConfig config;
 	private final Map<UUID, PlayerState> states = new HashMap<>();
@@ -87,6 +91,21 @@ public final class ChallengeManager {
 			return type == SubjectType.ITEM ? "langcraft.command.no_items" : "langcraft.command.no_mobs";
 		}
 		return null;
+	}
+
+	/** Abre uma roleta de efeito pedida por comando. Retorna a chave da mensagem de erro, se não puder abrir. */
+	public @Nullable String startRoulette(ServerPlayer player, RouletteStartPayload.Kind kind) {
+		if (!ServerPlayNetworking.canSend(player, RouletteStartPayload.TYPE)) {
+			return "langcraft.command.no_mod";
+		}
+		PlayerState state = state(player);
+		if (!state.ready) {
+			return "langcraft.command.not_ready";
+		}
+		if (state.active != null || state.roulette != null) {
+			return "langcraft.command.busy";
+		}
+		return startEffectRoulette(player, state, kind) ? null : "langcraft.command.no_slices";
 	}
 
 	/** Volta a contar o intervalo do zero, para que um desafio não apareça assim que o jogador religar. */
@@ -184,6 +203,10 @@ public final class ChallengeManager {
 			case NONE -> {
 			}
 		}
+	}
+
+	private static int currentDay(ServerPlayer player) {
+		return (int) (player.level().getServer().overworld().getDayTime() / TICKS_PER_DAY);
 	}
 
 	private void tickChallenge(ServerPlayer player, PlayerState state) {
@@ -330,7 +353,8 @@ public final class ChallengeManager {
 
 	private void syncScore(ServerPlayer player) {
 		PlayerProgress progress = progress(player);
-		ServerPlayNetworking.send(player, new ScorePayload(progress.streak(), streakGoal(), progress.bestStreak(), progress.totalCorrect(), progress.totalWrong()));
+		ServerPlayNetworking.send(player, new ScorePayload(progress.streak(), streakGoal(), progress.bestStreak(), progress.totalCorrect(), progress.totalWrong(),
+				progress.lossStreak(), Math.max(0, config.disasterStreak), progress.shields()));
 		TitleTeams.apply(player.level().getServer(), player, progress.totalCorrect(), config.showTitles);
 	}
 
@@ -348,36 +372,87 @@ public final class ChallengeManager {
 		if (title != titleBefore && config.showTitles) {
 			announceTitle(player, title);
 		}
+		player.giveExperiencePoints(Consequences.winExperience(config.winExperience, progress.streak(), challenge.minigame));
 		ServerPlayNetworking.send(player, new ChallengeEndedPayload(challenge.id, ChallengeEndedPayload.Outcome.WON, progress.streak()));
 		finish(state);
 		if (progress.rewardDue(streakGoal())) {
-			setProgress(player, progress.afterReward());
+			grantShields(player, progress);
+		}
+		boolean jackpot = config.rewardRouletteEnabled && PlayerProgress.milestone(progress.streak(), config.jackpotStreak)
+				&& startEffectRoulette(player, state, RouletteStartPayload.Kind.JACKPOT);
+		if (!jackpot && progress.rewardDue(streakGoal())) {
 			startReward(player, state);
 		}
 		syncScore(player);
 	}
 
+	private void grantShields(ServerPlayer player, PlayerProgress progress) {
+		int shields = Math.min(config.maxShields, progress.shields() + config.rewardShields);
+		if (shields > progress.shields()) {
+			setProgress(player, progress.withShields(shields));
+			player.sendSystemMessage(Component.translatable("langcraft.message.shield_gained", shields).withStyle(ChatFormatting.AQUA));
+		}
+	}
+
+	/** A diária é um dos castigos possíveis de um erro, e sai no máximo uma vez por dia do jogo. O desastre tem prioridade. */
+	private @Nullable RouletteStartPayload.Kind specialPunishment(ServerPlayer player, PlayerProgress progress) {
+		if (progress.disasterDue(config.disasterStreak) && !Roulette.usableEffects(config.disasterSlices).isEmpty()) {
+			return RouletteStartPayload.Kind.DISASTER;
+		}
+		boolean daily = config.dailyRouletteEnabled && progress.dailyAvailable(currentDay(player))
+				&& !Roulette.usableEffects(config.dailySlices).isEmpty() && random.nextInt(100) < config.dailyChancePercent;
+		return daily ? RouletteStartPayload.Kind.DAILY : null;
+	}
+
+	/** O escudo só segura o castigo comum. As roletas de desastre e diária não têm como ser canceladas. */
 	private void expire(ServerPlayer player, PlayerState state) {
 		Challenge challenge = state.active;
-		setProgress(player, progress(player).afterLoss());
-		if (challenge.type == SubjectType.MOB) {
-			MobPunishment.spawnAbove(player, challenge.subject);
+		PlayerProgress progress = progress(player).afterLoss();
+		setProgress(player, progress);
+		RouletteStartPayload.Kind special = specialPunishment(player, progress);
+		boolean shielded = special == null && progress.shields() > 0;
+		Consequences.LossPenalty penalty = Consequences.lossPenalty(progress.lossStreak(), config.lossLevelsPerError, config.lossDebuffSeconds);
+		if (shielded) {
+			setProgress(player, progress.withShields(progress.shields() - 1));
+			player.sendSystemMessage(Component.translatable("langcraft.message.shielded").withStyle(ChatFormatting.AQUA));
+		} else if (challenge.type == SubjectType.MOB) {
+			for (int i = 0; i < (special != null ? 1 : penalty.mobs()); i++) {
+				MobPunishment.spawnAbove(player, challenge.subject);
+			}
 		}
-		ServerPlayNetworking.send(player, new ChallengeEndedPayload(challenge.id, ChallengeEndedPayload.Outcome.LOST, 0));
+		ServerPlayNetworking.send(player, new ChallengeEndedPayload(challenge.id, shielded ? ChallengeEndedPayload.Outcome.SHIELDED : ChallengeEndedPayload.Outcome.LOST, 0));
 		finish(state);
-		if (challenge.type == SubjectType.ITEM) {
-			startPunishment(player, state, challenge.item());
+		if (special != null) {
+			startEffectRoulette(player, state, special);
+		} else if (!shielded) {
+			applyPenalty(player, penalty);
+			if (challenge.type == SubjectType.ITEM) {
+				startPunishment(player, state, challenge.item(), progress.lossStreak());
+			}
 		}
 		syncScore(player);
 	}
 
-	private void startPunishment(ServerPlayer player, PlayerState state, Item item) {
+	private void applyPenalty(ServerPlayer player, Consequences.LossPenalty penalty) {
+		int levels = Math.min(penalty.levels(), player.experienceLevel);
+		if (levels > 0) {
+			player.giveExperienceLevels(-levels);
+			player.sendSystemMessage(Component.translatable("langcraft.message.levels_lost", levels).withStyle(ChatFormatting.RED));
+		}
+		if (penalty.debuffSeconds() > 0) {
+			int ticks = penalty.debuffSeconds() * TICKS_PER_SECOND;
+			player.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, ticks, penalty.amplifier()));
+			player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, ticks, penalty.amplifier()));
+		}
+	}
+
+	private void startPunishment(ServerPlayer player, PlayerState state, Item item, int lossStreak) {
 		ItemStack stack = InventoryPicker.firstStack(player, item);
 		if (stack.isEmpty()) {
 			player.sendSystemMessage(Component.translatable("langcraft.message.escaped", item.getName()));
 			return;
 		}
-		List<Roulette.Slice> slices = Roulette.buildSlices(stack.getCount(), config.rouletteSlices);
+		List<Roulette.Slice> slices = Roulette.buildSlices(stack.getCount(), Roulette.harsher(config.rouletteSlices, lossStreak));
 		if (slices.size() <= 1) {
 			removeItems(player, item, slices.isEmpty() ? stack.getCount() : slices.get(0).amount());
 			return;
@@ -404,10 +479,38 @@ public final class ChallengeManager {
 
 	private void openRoulette(ServerPlayer player, PlayerState state, RouletteStartPayload.Kind kind, Item item, ItemStack stack, List<Roulette.Slice> slices) {
 		int autoSpinTicks = config.rouletteAutoSpinSeconds * TICKS_PER_SECOND;
-		RouletteRun run = new RouletteRun(nextId++, kind, item, stack.copy(), slices, now + autoSpinTicks);
+		RouletteRun run = new RouletteRun(nextId++, kind, item, stack.copy(), slices, List.of(), now + autoSpinTicks);
 		state.roulette = run;
 		ServerPlayNetworking.send(player, new RouletteStartPayload(run.id, kind, InventoryPicker.idOf(item), stack.getCount(),
-				slices.stream().map(Roulette.Slice::amount).toList(), slices.stream().map(Roulette.Slice::weight).toList(), autoSpinTicks));
+				slices.stream().map(Roulette.Slice::amount).toList(), slices.stream().map(Roulette.Slice::weight).toList(), autoSpinTicks, List.of()));
+	}
+
+	/** Abre uma roleta em que cada fatia é um efeito. Retorna falso se a configuração não deixou nenhuma fatia. */
+	private boolean startEffectRoulette(ServerPlayer player, PlayerState state, RouletteStartPayload.Kind kind) {
+		List<Roulette.EffectSpec> specs = Roulette.usableEffects(switch (kind) {
+			case DAILY -> config.dailySlices;
+			case DISASTER -> config.disasterSlices;
+			default -> config.jackpotSlices;
+		});
+		if (specs.isEmpty()) {
+			return false;
+		}
+		Item icon = switch (kind) {
+			case DAILY -> Items.CLOCK;
+			case DISASTER -> Items.WITHER_SKELETON_SKULL;
+			default -> Items.NETHER_STAR;
+		};
+		PlayerProgress progress = progress(player);
+		List<Roulette.Slice> slices = specs.stream().map(spec -> new Roulette.Slice(1, spec.weight())).toList();
+		List<RouletteEffect> effects = specs.stream().map(Roulette.EffectSpec::effect).toList();
+		int autoSpinTicks = config.rouletteAutoSpinSeconds * TICKS_PER_SECOND;
+		RouletteRun run = new RouletteRun(nextId++, kind, icon, new ItemStack(icon), slices, effects, now + autoSpinTicks);
+		state.roulette = run;
+		ServerPlayNetworking.send(player, new RouletteStartPayload(run.id, kind, InventoryPicker.idOf(icon),
+				kind == RouletteStartPayload.Kind.JACKPOT ? progress.streak() : progress.lossStreak(),
+				slices.stream().map(Roulette.Slice::amount).toList(), slices.stream().map(Roulette.Slice::weight).toList(), autoSpinTicks,
+				effects.stream().map(RouletteEffect::id).toList()));
+		return true;
 	}
 
 	private void onSpin(ServerPlayer player, RouletteSpinPayload payload) {
@@ -433,13 +536,23 @@ public final class ChallengeManager {
 				spin(player, run);
 			}
 		} else if (now >= run.applyAt) {
-			applyRoulette(player, run);
+			// Antes de aplicar, porque um dos efeitos pode matar o jogador, e a morte cancela o que estiver aberto.
 			state.roulette = null;
 			state.timers.rest(RETRY_DELAY_TICKS);
+			applyRoulette(player, run, false);
+			syncScore(player);
 		}
 	}
 
-	private void applyRoulette(ServerPlayer player, RouletteRun run) {
+	private void applyRoulette(ServerPlayer player, RouletteRun run, boolean leaving) {
+		if (!run.effects.isEmpty()) {
+			if (run.kind == RouletteStartPayload.Kind.DAILY) {
+				setProgress(player, progress(player).withLastDailyDay(currentDay(player)));
+			}
+			RouletteEffect effect = run.effects.get(run.sliceIndex);
+			RouletteEffects.apply(player, leaving && effect.needsPlayerOnline() ? RouletteEffect.LOSE_HALF_INVENTORY : effect, mobTiers(), random);
+			return;
+		}
 		int amount = run.slices.get(run.sliceIndex).amount();
 		if (run.kind == RouletteStartPayload.Kind.PUNISHMENT) {
 			removeItems(player, run.item, amount);
@@ -490,7 +603,7 @@ public final class ChallengeManager {
 		if (!run.spun()) {
 			run.sliceIndex = Roulette.draw(run.slices, random);
 		}
-		applyRoulette(player, run);
+		applyRoulette(player, run, true);
 	}
 
 	private void finish(PlayerState state) {
@@ -576,16 +689,18 @@ public final class ChallengeManager {
 		final Item item;
 		final ItemStack stack;
 		final List<Roulette.Slice> slices;
+		final List<RouletteEffect> effects;
 		final int autoSpinAt;
 		int sliceIndex = -1;
 		int applyAt;
 
-		RouletteRun(int id, RouletteStartPayload.Kind kind, Item item, ItemStack stack, List<Roulette.Slice> slices, int autoSpinAt) {
+		RouletteRun(int id, RouletteStartPayload.Kind kind, Item item, ItemStack stack, List<Roulette.Slice> slices, List<RouletteEffect> effects, int autoSpinAt) {
 			this.id = id;
 			this.kind = kind;
 			this.item = item;
 			this.stack = stack;
 			this.slices = slices;
+			this.effects = effects;
 			this.autoSpinAt = autoSpinAt;
 		}
 

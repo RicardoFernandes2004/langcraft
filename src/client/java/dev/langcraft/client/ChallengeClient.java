@@ -199,12 +199,12 @@ public final class ChallengeClient {
 				play(SoundEvents.PLAYER_LEVELUP, 1.4f);
 				recordFlashcard(view, true);
 			}
-			case LOST -> {
+			case LOST, SHIELDED -> {
 				current = null;
 				recordFlashcard(view, false);
 				showAnswer(minecraft, view);
 				play(SoundEvents.NOTE_BLOCK_DIDGERIDOO.value(), 0.6f);
-				if (view.type == SubjectType.MOB) {
+				if (payload.outcome() == ChallengeEndedPayload.Outcome.LOST && view.type == SubjectType.MOB) {
 					minecraft.gui.setTitle(Component.translatable("langcraft.message.mob_title"));
 					minecraft.gui.setSubtitle(Component.translatable("langcraft.message.mob_subtitle", inlineWord(view.word, view.language) + " · " + view.nativeName));
 				}

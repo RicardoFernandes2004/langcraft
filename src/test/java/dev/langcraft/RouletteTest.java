@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import dev.langcraft.challenge.Roulette;
 import dev.langcraft.challenge.Roulette.Slice;
 import dev.langcraft.challenge.Roulette.SliceSpec;
+import dev.langcraft.challenge.RouletteEffect;
 import java.util.List;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,22 @@ class RouletteTest {
 	void percentagesRoundUp() {
 		List<Slice> slices = Roulette.buildSlices(5, DEFAULTS);
 		assertEquals(List.of(1, 2, 3, 4, 5), slices.stream().map(Slice::amount).toList());
+	}
+
+	@Test
+	void eachMistakeInARowTakesTheLightestSlice() {
+		assertEquals(DEFAULTS, Roulette.harsher(DEFAULTS, 1));
+		assertEquals(DEFAULTS.subList(1, 5), Roulette.harsher(DEFAULTS, 2));
+		assertEquals(DEFAULTS.subList(4, 5), Roulette.harsher(DEFAULTS, 5));
+		assertEquals(DEFAULTS.subList(4, 5), Roulette.harsher(DEFAULTS, 50), "a mais pesada sempre fica");
+		assertEquals(List.of(), Roulette.harsher(List.of(), 3));
+	}
+
+	@Test
+	void unreadableOrImpossibleEffectsLeaveTheWheel() {
+		Roulette.EffectSpec death = new Roulette.EffectSpec(RouletteEffect.DEATH, 10);
+		assertEquals(List.of(death), Roulette.usableEffects(java.util.Arrays.asList(
+				death, new Roulette.EffectSpec(RouletteEffect.CURSE, 0), new Roulette.EffectSpec(null, 5), null)));
 	}
 
 	@Test

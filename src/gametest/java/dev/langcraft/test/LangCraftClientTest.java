@@ -81,6 +81,10 @@ public class LangCraftClientTest implements FabricClientGameTest {
 		config.mobIntervalMinSeconds = FAR_FUTURE_SECONDS;
 		config.mobIntervalMaxSeconds = FAR_FUTURE_SECONDS;
 		config.rewardRouletteEnabled = false;
+		// A bateria conta itens depois de cada erro, então as roletas de efeito e os escudos ficam de fora.
+		config.disasterStreak = 0;
+		config.dailyRouletteEnabled = false;
+		config.rewardShields = 0;
 		config.quizSeconds = 3;
 		config.speakSeconds = 3;
 		config.holdSeconds = 4;
@@ -552,7 +556,7 @@ public class LangCraftClientTest implements FabricClientGameTest {
 			context.waitTicks(2);
 
 			for (RouletteStartPayload.Kind kind : kinds) {
-				context.setScreen(() -> new RouletteScreen(new RouletteStartPayload(1, kind, "minecraft:cobblestone", 64, List.of(1, 16, 32, 48, 64), List.of(25, 25, 20, 15, 15), 200)));
+				context.setScreen(() -> new RouletteScreen(new RouletteStartPayload(1, kind, "minecraft:cobblestone", 64, List.of(1, 16, 32, 48, 64), List.of(25, 25, 20, 15, 15), 200, List.of())));
 				context.waitTicks(2);
 				context.takeScreenshot(name + "-roleta-" + kind.name().toLowerCase(java.util.Locale.ROOT));
 			}
@@ -1160,7 +1164,7 @@ public class LangCraftClientTest implements FabricClientGameTest {
 		check(context.computeOnClient(mc -> !(mc.screen instanceof RouletteScreen)), "ainda nao ha premio");
 		winQuiz();
 		context.waitForScreen(RouletteScreen.class);
-		check(streak() == 0, "sequencia zera apos o premio");
+		check(streak() == 2, "sequencia continua apos o premio");
 		check(context.computeOnClient(mc -> ((RouletteScreen) mc.screen).kind() == RouletteStartPayload.Kind.REWARD), "deve ser a roleta de premio");
 		context.waitTicks(2);
 		context.takeScreenshot("roleta-premio");

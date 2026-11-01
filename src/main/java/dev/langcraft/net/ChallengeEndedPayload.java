@@ -9,6 +9,8 @@ public record ChallengeEndedPayload(int id, Outcome outcome, int streak) impleme
 	public enum Outcome {
 		WON,
 		LOST,
+		/** Errou, mas um escudo cancelou o castigo. */
+		SHIELDED,
 		CANCELLED
 	}
 

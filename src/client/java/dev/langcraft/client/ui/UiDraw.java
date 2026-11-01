@@ -1,6 +1,7 @@
 package dev.langcraft.client.ui;
 
 import dev.langcraft.client.ChallengeView;
+import dev.langcraft.data.PlayerProgress;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -93,19 +94,19 @@ final class UiDraw {
 		if (UiTheme.current().hasPips() && goal <= PIP_COUNT) {
 			return goal * PIP_SIZE + (goal - 1) * PIP_GAP;
 		}
-		return font.width(Component.translatable("langcraft.hud.streak", streak, goal));
+		return font.width(Component.translatable("langcraft.hud.streak", streak, PlayerProgress.nextMilestone(streak, goal)));
 	}
 
-	/** Mostra a sequência de acertos com o texto terminando em {@code right}. Metas longas não cabem nos marcadores. */
+	/** Mostra quanto falta para a próxima recompensa, terminando em {@code right}. Metas longas não cabem nos marcadores. */
 	static void streak(GuiGraphics graphics, Font font, int streak, int goal, int right, int y) {
 		UiTheme theme = UiTheme.current();
 		int width = streakWidth(font, streak, goal);
 		if (theme.hasPips() && goal <= PIP_COUNT) {
 			for (int i = 0; i < goal; i++) {
-				theme.drawPip(graphics, i < streak, right - width + i * (PIP_SIZE + PIP_GAP), y + 1);
+				theme.drawPip(graphics, i < streak % goal, right - width + i * (PIP_SIZE + PIP_GAP), y + 1);
 			}
 		} else {
-			text(graphics, font, Component.translatable("langcraft.hud.streak", streak, goal), right - width, y, theme.palette().accent());
+			text(graphics, font, Component.translatable("langcraft.hud.streak", streak, PlayerProgress.nextMilestone(streak, goal)), right - width, y, theme.palette().accent());
 		}
 	}
 

@@ -65,7 +65,13 @@ O erro funciona de um jeito diferente em cada minigame:
 
 - **Desafio de item:** se você perder, uma roleta define quanto da pilha é perdido, de 1 item até a pilha inteira. Uma pilha de 1 item é perdida direto, sem roleta.
 - **Desafio de mob:** se você perder, o mob perguntado nasce em cima de você, de uma galinha até o Warden (2% de chance).
-- **Roleta invertida:** a cada 5 acertos seguidos, uma roleta dá itens de uma pilha do seu inventário, de +1 até dobrar a pilha.
+- **Todo erro custa mais:** além disso, você perde 2 níveis de experiência e fica lento e fraco por 20 segundos. Cada erro seguido multiplica esses valores, tira a fatia mais leve da roleta de itens e aumenta a quantidade de mobs, até 3.
+- **Roleta de desastre:** a cada 3 erros seguidos, ela substitui a roleta de itens: nenhum nível, sem armadura, sem hotbar, sem metade do inventário, um chefe, a morte ou a perda de todos os itens.
+- **Roleta diária:** cada erro tem 35% de chance de abrir esta roleta no lugar do castigo comum, no máximo uma vez por dia do jogo. Pode tirar 3 pilhas ou metade dos níveis, trazer 3 monstros, amaldiçoar, desgastar o equipamento ou deixar você com um coração. Há 3% de chance de escapar.
+- **Roleta invertida:** a cada 5 acertos seguidos, uma roleta dá itens de uma pilha do seu inventário, de +1 até dobrar a pilha, e você ganha um escudo.
+- **Escudos:** cada um cancela o castigo de um erro comum, até um máximo de 3. Eles não seguram as roletas de desastre e diária.
+- **Jackpot:** a cada 15 acertos seguidos, uma roleta com diamantes, níveis, maçãs douradas, efeitos bons, escudos, totem, netherita ou maçã encantada.
+- **Experiência:** cada acerto dá experiência, mais alta com a sequência e em dobro na fala.
 
 Os dois intervalos só contam enquanto você está livre: param durante um desafio, uma roleta, os 30 segundos de espera depois de cada desafio e a preparação da voz, e também com o jogo pausado. Quando um desafio começa, o outro intervalo é afastado, para os dois não virem em sequência. Sem nenhum item no inventário, o mod tenta de novo a cada 10 segundos, em vez de esperar um intervalo inteiro.
 
@@ -184,11 +190,18 @@ O Mod Menu é opcional. Sem ele, ou para ajustes que a tela não mostra, como as
 | `rewardRouletteEnabled`, `rewardStreak` | `true`, 5 | Liga a roleta de prêmios e define a sequência exigida |
 | `rewardFallbackLevels` | 5 | Níveis dados quando não há item empilhável |
 | `rewardBlockedItems` | vazio | Itens que a roleta de prêmios não pode dar, como `minecraft:netherite_block` |
+| `lossLevelsPerError`, `lossDebuffSeconds` | 2, 20 | Níveis e segundos de lentidão e fraqueza por erro, vezes os erros seguidos |
+| `disasterStreak`, `disasterSlices` | 3, ver acima | Erros seguidos da roleta de desastre e suas fatias. Zero desliga |
+| `dailyRouletteEnabled`, `dailySlices` | `true`, ver acima | Liga a roleta diária e define suas fatias |
+| `dailyChancePercent` | 35 | Chance de um erro abrir a roleta diária, se ela ainda não saiu naquele dia |
+| `jackpotStreak`, `jackpotSlices` | 15, ver acima | Acertos seguidos do jackpot e suas fatias. Zero desliga |
+| `winExperience` | 10 | Experiência base de cada acerto. Zero desliga |
+| `rewardShields`, `maxShields` | 1, 3 | Escudos ganhos com a sequência e o máximo guardado |
 | `mobTiers` | ver abaixo | Categorias de mob, com chance e lista |
 | `includeModMobs` | `true` | Coloca os mobs de outros mods nas categorias |
 | `blockedMobs` | vazio | Mobs que nunca são sorteados, como `botania:doppleganger` |
 
-Chances padrão das roletas: 1 item 25%, 25% da pilha 25%, 50% da pilha 20%, 75% da pilha 15%, pilha inteira 15%.
+Chances padrão das roletas de itens: 1 item 15%, 25% da pilha 25%, 50% da pilha 25%, 75% da pilha 20%, pilha inteira 15%.
 
 Chances padrão de mob: inofensivos 40%, neutros 25%, hostis 22%, perigosos 11%, Warden 2%. Na dificuldade Pacífico, só entram mobs que não sejam hostis.
 

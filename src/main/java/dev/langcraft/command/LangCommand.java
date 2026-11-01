@@ -10,6 +10,7 @@ import dev.langcraft.challenge.SubjectType;
 import dev.langcraft.data.PlayerProgress;
 import dev.langcraft.data.StudyLanguage;
 import dev.langcraft.net.OpenScreenPayload;
+import dev.langcraft.net.RouletteStartPayload;
 import java.util.List;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.ChatFormatting;
@@ -50,6 +51,7 @@ public final class LangCommand {
 					HelpEntry.opens("/lang titles", "titles"))),
 			new HelpGroup("challenges", true, List.of(
 					HelpEntry.needsMore("/lang challenge", "challenge", "/lang challenge [item|mob] [speak|quiz|hold]"),
+					HelpEntry.needsMore("/lang roulette", "roulette", "/lang roulette [daily|disaster|jackpot]"),
 					HelpEntry.needsMore("/lang on", "on", "/lang on [items|mobs]"),
 					HelpEntry.needsMore("/lang off", "off", "/lang off [items|mobs]"))),
 			new HelpGroup("settings", false, List.of(
@@ -83,6 +85,11 @@ public final class LangCommand {
 									context.getSource().sendFailure(Component.translatable("langcraft.command.hold_only_items"));
 									return 0;
 								}))))
+				.then(Commands.literal("roulette")
+						.requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+						.then(roulette("daily", RouletteStartPayload.Kind.DAILY))
+						.then(roulette("disaster", RouletteStartPayload.Kind.DISASTER))
+						.then(roulette("jackpot", RouletteStartPayload.Kind.JACKPOT)))
 				.then(Commands.literal("language")
 						.executes(context -> openScreen(context.getSource(), OpenScreenPayload.Target.LANGUAGE))
 						.then(language("korean", StudyLanguage.KOREAN))
@@ -105,6 +112,17 @@ public final class LangCommand {
 
 	private static LiteralArgumentBuilder<CommandSourceStack> minigame(String name, SubjectType type, Minigame minigame) {
 		return Commands.literal(name).executes(context -> challenge(context.getSource(), type, minigame));
+	}
+
+	private static LiteralArgumentBuilder<CommandSourceStack> roulette(String name, RouletteStartPayload.Kind kind) {
+		return Commands.literal(name).executes(context -> {
+			String error = LangCraft.challenges.startRoulette(context.getSource().getPlayerOrException(), kind);
+			if (error != null) {
+				context.getSource().sendFailure(Component.translatable(error));
+				return 0;
+			}
+			return 1;
+		});
 	}
 
 	private static LiteralArgumentBuilder<CommandSourceStack> language(String name, StudyLanguage language) {

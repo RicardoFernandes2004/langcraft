@@ -18,16 +18,61 @@ class PlayerProgressTest {
 		}
 		progress = progress.afterWin();
 		assertTrue(progress.rewardDue(5));
-		assertEquals(0, progress.afterReward().streak());
+		assertEquals(5, progress.streak(), "a recompensa nao zera a sequencia");
+		for (int i = 0; i < 4; i++) {
+			progress = progress.afterWin();
+			assertFalse(progress.rewardDue(5));
+		}
+		assertTrue(progress.afterWin().rewardDue(5), "a proxima vem no multiplo seguinte");
+	}
+
+	@Test
+	void mistakesInARowOpenTheDisaster() {
+		PlayerProgress progress = PlayerProgress.initial(PlayerProgress.BOTH).afterLoss().afterLoss();
+		assertEquals(2, progress.lossStreak());
+		assertFalse(progress.disasterDue(3));
+		progress = progress.afterLoss();
+		assertTrue(progress.disasterDue(3));
+		assertFalse(progress.afterLoss().disasterDue(3));
+		assertTrue(progress.afterLoss().afterLoss().afterLoss().disasterDue(3), "continua a cada tres erros");
+		assertEquals(0, progress.afterWin().lossStreak(), "um acerto encerra a sequencia de erros");
+		assertFalse(progress.disasterDue(0), "meta zerada desliga");
+	}
+
+	@Test
+	void nextMilestoneAlwaysLiesAhead() {
+		assertEquals(5, PlayerProgress.nextMilestone(0, 5));
+		assertEquals(5, PlayerProgress.nextMilestone(4, 5));
+		assertEquals(10, PlayerProgress.nextMilestone(5, 5));
+		assertEquals(0, PlayerProgress.nextMilestone(3, 0));
+	}
+
+	@Test
+	void theDailyComesOnceADay() {
+		PlayerProgress progress = PlayerProgress.initial(PlayerProgress.BOTH);
+		assertTrue(progress.dailyAvailable(0), "pode sair desde o primeiro dia");
+		progress = progress.withLastDailyDay(4);
+		assertFalse(progress.dailyAvailable(4));
+		assertTrue(progress.dailyAvailable(5));
+	}
+
+	@Test
+	void shieldsAndDailySurviveTheScore() {
+		PlayerProgress progress = PlayerProgress.initial(PlayerProgress.BOTH);
+		assertEquals(PlayerProgress.NO_DAILY_YET, progress.lastDailyDay());
+		progress = progress.withShields(2).withLastDailyDay(7).afterLoss().afterWin().withLanguage(PlayerProgress.KOREAN).withEnabled(false, true);
+		assertEquals(2, progress.shields());
+		assertEquals(7, progress.lastDailyDay());
+		assertEquals(0, progress.withShields(-1).shields());
 	}
 
 	@Test
 	void scoreCountsWinsLossesAndTheBestStreak() {
 		PlayerProgress progress = PlayerProgress.initial(PlayerProgress.BOTH).afterWin().afterWin().afterWin();
 		assertEquals(3, progress.bestStreak());
-		progress = progress.afterLoss().afterWin().afterReward();
-		assertEquals(0, progress.streak());
-		assertEquals(3, progress.bestStreak(), "o recorde sobrevive a derrota e a recompensa");
+		progress = progress.afterLoss().afterWin();
+		assertEquals(1, progress.streak());
+		assertEquals(3, progress.bestStreak(), "o recorde sobrevive a derrota");
 		assertEquals(4, progress.totalCorrect());
 		assertEquals(1, progress.totalWrong());
 		PlayerProgress changed = progress.withLanguage(PlayerProgress.KOREAN).withEnabled(false, false);
@@ -52,7 +97,7 @@ class PlayerProgressTest {
 		assertFalse(initial.afterWin().afterLoss().languageChosen());
 		PlayerProgress chosen = initial.withLanguage(PlayerProgress.KOREAN);
 		assertTrue(chosen.languageChosen());
-		assertTrue(chosen.afterWin().afterLoss().afterReward().withEnabled(false, false).languageChosen());
+		assertTrue(chosen.afterWin().afterLoss().withEnabled(false, false).languageChosen());
 	}
 
 	@Test

@@ -6,6 +6,7 @@ import dev.langcraft.client.ChallengeClient;
 import dev.langcraft.net.RouletteSpinPayload;
 import dev.langcraft.net.RouletteStartPayload;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.GuiGraphics;
@@ -30,6 +31,9 @@ public final class RouletteScreen extends Screen {
 	/** Reserva o título em cima e, embaixo, o aviso e o botão, sem que um encoste no outro. */
 	private static final int WHEEL_MARGIN = 84;
 	private static final int PLATE_PADDING = 10;
+	private static final float EFFECT_LABEL_SCALE = 0.75f;
+	/** O desastre tem a mesma cara em todos os temas, para ninguém confundir com a roleta comum. */
+	private static final int[] DISASTER_COLORS = {0xFF3A0A0A, 0xFF1A1A1A, 0xFF7A1010, 0xFF0D0D0D, 0xFFB01515};
 
 	private final RouletteStartPayload payload;
 	private final ItemStack icon;
@@ -45,10 +49,10 @@ public final class RouletteScreen extends Screen {
 	private int spinElapsed;
 	private float targetRotation;
 	private int lastPointerSlice = -1;
+	private boolean openingSoundPlayed;
 
 	public RouletteScreen(RouletteStartPayload payload) {
-		super(Component.translatable(payload.kind() == RouletteStartPayload.Kind.PUNISHMENT
-				? "langcraft.roulette.punishment_title" : "langcraft.roulette.reward_title"));
+		super(Component.translatable("langcraft.roulette." + payload.kind().name().toLowerCase(Locale.ROOT) + "_title"));
 		this.payload = payload;
 		this.icon = new ItemStack(BuiltInRegistries.ITEM.getValue(Identifier.parse(payload.item())));
 		this.ticksUntilAutoSpin = payload.autoSpinTicks();
@@ -113,8 +117,11 @@ public final class RouletteScreen extends Screen {
 	}
 
 	private int[] sliceColors() {
+		if (payload.kind() == RouletteStartPayload.Kind.DISASTER) {
+			return DISASTER_COLORS;
+		}
 		UiTheme.Wheel wheel = UiTheme.current().wheel();
-		return payload.kind() == RouletteStartPayload.Kind.PUNISHMENT ? wheel.punishment() : wheel.reward();
+		return payload.kind().isBad() ? wheel.punishment() : wheel.reward();
 	}
 
 	/** Espalha as cores do início ao fim da paleta, para que a última fatia seja sempre a mais extrema. */
@@ -170,6 +177,14 @@ public final class RouletteScreen extends Screen {
 
 	@Override
 	public void tick() {
+		if (!openingSoundPlayed) {
+			openingSoundPlayed = true;
+			if (payload.kind() == RouletteStartPayload.Kind.DISASTER) {
+				ChallengeClient.play(SoundEvents.WITHER_SPAWN, 0.8f, 0.7f);
+			} else if (payload.kind() == RouletteStartPayload.Kind.DAILY) {
+				ChallengeClient.play(SoundEvents.ELDER_GUARDIAN_CURSE, 1f, 0.7f);
+			}
+		}
 		if (sliceIndex < 0) {
 			if (ticksUntilAutoSpin > 0) {
 				ticksUntilAutoSpin--;
@@ -178,7 +193,7 @@ public final class RouletteScreen extends Screen {
 		}
 		spinElapsed++;
 		if (spinElapsed == spinTicks) {
-			if (payload.kind() == RouletteStartPayload.Kind.PUNISHMENT) {
+			if (payload.kind().isBad()) {
 				ChallengeClient.play(SoundEvents.ANVIL_LAND, 1.2f);
 			} else {
 				ChallengeClient.play(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.0f);
@@ -213,9 +228,11 @@ public final class RouletteScreen extends Screen {
 	@Override
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
 		super.render(graphics, mouseX, mouseY, partialTick);
-		boolean punishment = payload.kind() == RouletteStartPayload.Kind.PUNISHMENT;
+		boolean punishment = payload.kind().isBad();
 		UiTheme.Palette palette = UiDraw.palette();
-		Component stack = Component.translatable("langcraft.roulette.stack", payload.stackCount(), icon.getHoverName());
+		Component stack = payload.effects().isEmpty()
+				? Component.translatable("langcraft.roulette.stack", payload.stackCount(), icon.getHoverName())
+				: Component.translatable("langcraft.roulette." + payload.kind().name().toLowerCase(Locale.ROOT) + "_subtitle", payload.stackCount());
 
 		plate(graphics, Math.max(font.width(title), font.width(stack)), 3, 29);
 		UiDraw.centered(graphics, font, title, width / 2, 8, punishment ? palette.red() : palette.accent());
@@ -270,6 +287,10 @@ public final class RouletteScreen extends Screen {
 			graphics.pose().translate(0, -radius * 0.68f);
 			graphics.pose().rotate((float) Math.toRadians(-middle));
 			String label = String.valueOf(amounts.get(i));
+			if (!payload.effects().isEmpty()) {
+				label = Component.translatable("langcraft.effect." + payload.effects().get(i)).getString();
+				graphics.pose().scale(EFFECT_LABEL_SCALE, EFFECT_LABEL_SCALE);
+			}
 			graphics.drawString(font, label, -font.width(label) / 2, -4, light ? 0xFF14110D : UiTheme.CLASSIC.palette().ink(), !light);
 			graphics.pose().popMatrix();
 		}
@@ -293,6 +314,9 @@ public final class RouletteScreen extends Screen {
 
 	private Component footer() {
 		if (sliceIndex >= 0 && spinElapsed >= spinTicks) {
+			if (!payload.effects().isEmpty()) {
+				return Component.translatable("langcraft.effect." + payload.effects().get(sliceIndex) + ".desc");
+			}
 			String key = payload.kind() == RouletteStartPayload.Kind.PUNISHMENT
 					? "langcraft.roulette.result_lost" : "langcraft.roulette.result_gained";
 			return Component.translatable(key, Component.translatable("langcraft.roulette.stack", payload.amounts().get(sliceIndex), icon.getHoverName()));
@@ -306,7 +330,7 @@ public final class RouletteScreen extends Screen {
 	private int footerColor() {
 		UiTheme.Palette palette = UiDraw.palette();
 		if (sliceIndex >= 0 && spinElapsed >= spinTicks) {
-			return payload.kind() == RouletteStartPayload.Kind.PUNISHMENT ? palette.red() : palette.green();
+			return payload.kind().isBad() ? palette.red() : palette.green();
 		}
 		return palette.muted();
 	}

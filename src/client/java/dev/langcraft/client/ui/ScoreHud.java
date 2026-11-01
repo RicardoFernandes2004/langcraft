@@ -5,6 +5,7 @@ import dev.langcraft.challenge.Minigame;
 import dev.langcraft.challenge.PlayerTitle;
 import dev.langcraft.client.ChallengeClient;
 import dev.langcraft.client.ChallengeView;
+import dev.langcraft.data.PlayerProgress;
 import dev.langcraft.net.ScorePayload;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -39,7 +40,7 @@ public final class ScoreHud {
 		Font font = minecraft.font;
 		UiTheme.Palette palette = UiDraw.palette();
 		Component streak = score.streakGoal() > 0
-				? Component.translatable("langcraft.hud.streak", score.streak(), score.streakGoal())
+				? Component.translatable("langcraft.hud.streak", score.streak(), PlayerProgress.nextMilestone(score.streak(), score.streakGoal()))
 				: Component.translatable("langcraft.score.streak", score.streak());
 		Component best = Component.translatable("langcraft.score.best", score.bestStreak());
 		Component title = PlayerTitle.of(score.totalCorrect()).displayName();
@@ -47,8 +48,21 @@ public final class ScoreHud {
 		String wrong = "✖ " + score.totalWrong();
 		int countsGap = font.width("  ");
 		int countsWidth = font.width(correct) + countsGap + font.width(wrong);
-		int width = Math.max(font.width(title), Math.max(Math.max(font.width(streak), font.width(best)), countsWidth)) + PADDING * 2;
-		int height = ROWS * ROW_HEIGHT + PADDING * 2 - 2;
+		Component mistakes = score.lossStreak() > 0 && score.lossGoal() > 0
+				? Component.translatable("langcraft.score.mistakes", score.lossStreak(), PlayerProgress.nextMilestone(score.lossStreak(), score.lossGoal())) : null;
+		Component shields = score.shields() > 0 ? Component.translatable("langcraft.score.shields", score.shields()) : null;
+		int width = Math.max(font.width(title), Math.max(Math.max(font.width(streak), font.width(best)), countsWidth));
+		int rows = ROWS;
+		if (mistakes != null) {
+			width = Math.max(width, font.width(mistakes));
+			rows++;
+		}
+		if (shields != null) {
+			width = Math.max(width, font.width(shields));
+			rows++;
+		}
+		width += PADDING * 2;
+		int height = rows * ROW_HEIGHT + PADDING * 2 - 2;
 
 		int x = MARGIN;
 		int y = belowAlert(graphics, x + width) ? SpeakAlertHud.bottom() + MARGIN : MARGIN;
@@ -61,6 +75,14 @@ public final class ScoreHud {
 		UiDraw.text(graphics, font, best, textX, textY + ROW_HEIGHT * 2, palette.muted());
 		UiDraw.text(graphics, font, correct, textX, textY + ROW_HEIGHT * 3, palette.green());
 		UiDraw.text(graphics, font, wrong, textX + font.width(correct) + countsGap, textY + ROW_HEIGHT * 3, palette.red());
+		int nextY = textY + ROW_HEIGHT * ROWS;
+		if (mistakes != null) {
+			UiDraw.text(graphics, font, mistakes, textX, nextY, palette.red());
+			nextY += ROW_HEIGHT;
+		}
+		if (shields != null) {
+			UiDraw.text(graphics, font, shields, textX, nextY, palette.accent());
+		}
 	}
 
 	/** Em janelas estreitas, o placar encostaria no alerta do topo. */

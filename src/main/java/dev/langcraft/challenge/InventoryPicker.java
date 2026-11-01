@@ -59,6 +59,11 @@ public final class InventoryPicker {
 		return stacks;
 	}
 
+	/** Os slots com alguma coisa, fora a armadura. */
+	public static List<Integer> occupiedSlots(ServerPlayer player) {
+		return slots().stream().filter(slot -> !player.getInventory().getItem(slot).isEmpty()).toList();
+	}
+
 	public static String idOf(Item item) {
 		return BuiltInRegistries.ITEM.getKey(item).toString();
 	}

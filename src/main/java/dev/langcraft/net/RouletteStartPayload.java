@@ -7,11 +7,22 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
+/**
+ * Nas roletas de itens, {@code amounts} tem a quantidade de cada fatia e {@code effects} fica vazio.
+ * Nas de efeito, {@code effects} diz o que cada fatia faz e {@code stackCount} é a sequência que abriu a roleta.
+ */
 public record RouletteStartPayload(int id, Kind kind, String item, int stackCount, List<Integer> amounts, List<Integer> weights,
-		int autoSpinTicks) implements CustomPacketPayload {
+		int autoSpinTicks, List<String> effects) implements CustomPacketPayload {
 	public enum Kind {
 		PUNISHMENT,
-		REWARD
+		REWARD,
+		DAILY,
+		DISASTER,
+		JACKPOT;
+
+		public boolean isBad() {
+			return this == PUNISHMENT || this == DAILY || this == DISASTER;
+		}
 	}
 
 	public static final Type<RouletteStartPayload> TYPE = new Type<>(LangCraft.id("roulette_start"));
@@ -29,7 +40,13 @@ public record RouletteStartPayload(int id, Kind kind, String item, int stackCoun
 			amounts.add(buf.readVarInt());
 			weights.add(buf.readVarInt());
 		}
-		return new RouletteStartPayload(id, kind, item, stackCount, amounts, weights, buf.readVarInt());
+		int autoSpinTicks = buf.readVarInt();
+		int effectCount = buf.readVarInt();
+		List<String> effects = new ArrayList<>(effectCount);
+		for (int i = 0; i < effectCount; i++) {
+			effects.add(buf.readUtf());
+		}
+		return new RouletteStartPayload(id, kind, item, stackCount, amounts, weights, autoSpinTicks, effects);
 	}
 
 	private void write(FriendlyByteBuf buf) {
@@ -43,6 +60,8 @@ public record RouletteStartPayload(int id, Kind kind, String item, int stackCoun
 			buf.writeVarInt(weights.get(i));
 		}
 		buf.writeVarInt(autoSpinTicks);
+		buf.writeVarInt(effects.size());
+		effects.forEach(buf::writeUtf);
 	}
 
 	@Override

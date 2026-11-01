@@ -6,6 +6,7 @@ import com.google.gson.JsonParseException;
 import dev.langcraft.LangCraft;
 import dev.langcraft.challenge.MobPunishment;
 import dev.langcraft.challenge.Roulette;
+import dev.langcraft.challenge.RouletteEffect;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -52,17 +53,64 @@ public class LangConfig {
 	public String defaultLanguage = "both";
 
 	public int rouletteAutoSpinSeconds = 10;
+	/** Da fatia mais leve para a mais pesada, porque cada erro seguido tira as mais leves. */
 	public List<Roulette.SliceSpec> rouletteSlices = List.of(
-			new Roulette.SliceSpec(0, 25),
+			new Roulette.SliceSpec(0, 15),
 			new Roulette.SliceSpec(25, 25),
-			new Roulette.SliceSpec(50, 20),
-			new Roulette.SliceSpec(75, 15),
+			new Roulette.SliceSpec(50, 25),
+			new Roulette.SliceSpec(75, 20),
 			new Roulette.SliceSpec(100, 15));
+
+	/** Níveis de experiência perdidos a cada erro, vezes a quantidade de erros seguidos. */
+	public int lossLevelsPerError = 2;
+	/** Segundos de lentidão e fraqueza a cada erro, vezes a quantidade de erros seguidos. */
+	public int lossDebuffSeconds = 20;
+
+	/** A cada quantos erros seguidos abre a roleta de desastre. Zero desliga. */
+	public int disasterStreak = 3;
+	public List<Roulette.EffectSpec> disasterSlices = List.of(
+			new Roulette.EffectSpec(RouletteEffect.LOSE_ALL_LEVELS, 15),
+			new Roulette.EffectSpec(RouletteEffect.LOSE_ARMOR, 15),
+			new Roulette.EffectSpec(RouletteEffect.LOSE_HOTBAR, 20),
+			new Roulette.EffectSpec(RouletteEffect.LOSE_HALF_INVENTORY, 25),
+			new Roulette.EffectSpec(RouletteEffect.BOSS, 10),
+			new Roulette.EffectSpec(RouletteEffect.DEATH, 10),
+			new Roulette.EffectSpec(RouletteEffect.LOSE_EVERYTHING, 5));
+
+	/** Chance, de 0 a 100, de um erro abrir a roleta diária no lugar do castigo comum. Sai no máximo uma vez por dia do jogo. */
+	public boolean dailyRouletteEnabled = true;
+	public int dailyChancePercent = 35;
+	public List<Roulette.EffectSpec> dailySlices = List.of(
+			new Roulette.EffectSpec(RouletteEffect.NOTHING, 3),
+			new Roulette.EffectSpec(RouletteEffect.WEAR_GEAR, 10),
+			new Roulette.EffectSpec(RouletteEffect.LOSE_HALF_LEVELS, 20),
+			new Roulette.EffectSpec(RouletteEffect.CURSE, 15),
+			new Roulette.EffectSpec(RouletteEffect.LOSE_STACKS, 25),
+			new Roulette.EffectSpec(RouletteEffect.MOB_AMBUSH, 20),
+			new Roulette.EffectSpec(RouletteEffect.NEAR_DEATH, 7));
 
 	public boolean rewardRouletteEnabled = true;
 	public int rewardStreak = 5;
 	public int rewardFallbackLevels = 5;
 	public List<String> rewardBlockedItems = new ArrayList<>();
+
+	/** Experiência base de cada acerto. Zero desliga. */
+	public int winExperience = 10;
+	/** Escudos ganhos ao completar a sequência. Cada escudo cancela o castigo de um erro comum. */
+	public int rewardShields = 1;
+	public int maxShields = 3;
+
+	/** A cada quantos acertos seguidos abre o jackpot, no lugar da roleta de recompensa. Zero desliga. */
+	public int jackpotStreak = 15;
+	public List<Roulette.EffectSpec> jackpotSlices = List.of(
+			new Roulette.EffectSpec(RouletteEffect.DIAMONDS, 28),
+			new Roulette.EffectSpec(RouletteEffect.LEVELS, 20),
+			new Roulette.EffectSpec(RouletteEffect.GOLDEN_APPLES, 20),
+			new Roulette.EffectSpec(RouletteEffect.BLESSING, 12),
+			new Roulette.EffectSpec(RouletteEffect.SHIELDS, 10),
+			new Roulette.EffectSpec(RouletteEffect.TOTEM, 6),
+			new Roulette.EffectSpec(RouletteEffect.NETHERITE, 2),
+			new Roulette.EffectSpec(RouletteEffect.ENCHANTED_APPLE, 2));
 
 	/** Coloca os mobs de outros mods nas categorias abaixo, pelo tipo e pela vida de cada um. */
 	public boolean includeModMobs = true;

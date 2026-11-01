@@ -13,7 +13,25 @@ public final class Roulette {
 	public record Slice(int amount, int weight) {
 	}
 
+	/** Uma fatia das roletas de efeito. */
+	public record EffectSpec(RouletteEffect effect, int weight) {
+	}
+
 	private Roulette() {
+	}
+
+	/** Tira as fatias sem chance e as que o arquivo de configuração não conseguiu ler. */
+	public static List<EffectSpec> usableEffects(List<EffectSpec> specs) {
+		return specs.stream().filter(spec -> spec != null && spec.effect() != null && spec.weight() > 0).toList();
+	}
+
+	/**
+	 * Cada erro seguido depois do primeiro tira a fatia mais leve da roleta de itens.
+	 * A fatia mais pesada sempre fica, por mais longa que seja a sequência.
+	 */
+	public static List<SliceSpec> harsher(List<SliceSpec> specs, int lossStreak) {
+		int removed = Math.min(Math.max(0, lossStreak - 1), Math.max(0, specs.size() - 1));
+		return specs.subList(removed, specs.size());
 	}
 
 	/**
