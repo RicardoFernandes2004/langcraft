@@ -1,8 +1,10 @@
 package dev.linguacraft.client.ui;
 
+import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * As telas de estudo. Sempre têm o visual de caderno, não importa o tema escolhido, porque são as anotações
@@ -35,6 +37,18 @@ public abstract class NotebookScreen extends Screen {
 
 	protected final int pageTop(int maxHeight) {
 		return (height - pageHeight(maxHeight)) / 2;
+	}
+
+	/** Um botão que passa por todos os idiomas com palavras no caderno. Com cinco idiomas, não caberia um botão para cada. */
+	protected static Component languageFilterLabel(@Nullable String language) {
+		Component name = language == null ? Component.translatable("linguacraft.study.all") : Component.translatable("linguacraft.language." + language);
+		return Component.translatable("linguacraft.study.filter", name);
+	}
+
+	/** O idioma seguinte do filtro. Depois do último, volta para todos. */
+	protected static @Nullable String nextLanguage(@Nullable String language, List<String> languages) {
+		int next = languages.indexOf(language) + 1;
+		return next < languages.size() ? languages.get(next) : null;
 	}
 
 	protected final void drawPage(GuiGraphics graphics, int maxWidth, int maxHeight) {

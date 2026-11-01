@@ -1,7 +1,7 @@
 package dev.linguacraft.client.voice;
 
 import dev.linguacraft.LinguaCraft;
-import dev.linguacraft.data.PlayerProgress;
+import dev.linguacraft.data.StudyLanguage;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -30,7 +30,6 @@ public final class VoiceRecognizer {
 	private static final float[] SAMPLE_RATES = {16000f, 48000f, 44100f};
 	private static final int OPEN_ATTEMPTS = 10;
 	private static final int OPEN_RETRY_MILLIS = 300;
-	private static final String WHISPER_KOREAN = "ko";
 
 	private final String language;
 	private final Supplier<String> grammar;
@@ -152,7 +151,8 @@ public final class VoiceRecognizer {
 	}
 
 	private void listen(Model model) throws IOException, LineUnavailableException, InterruptedException {
-		String whisperCode = language.equals(PlayerProgress.KOREAN) ? WHISPER_KOREAN : null;
+		StudyLanguage study = StudyLanguage.byCode(language);
+		String whisperCode = study == null ? null : study.whisperLanguage();
 		try (Microphones.Input input = openChosenOrDefault();
 				SpeechPipeline pipeline = new SpeechPipeline(model, input.sampleRate(), grammar.get(), whisperCode == null ? null : ModelManager.whisper(), whisperCode,
 						whisperPrompt.get(), accepts, this::report)) {

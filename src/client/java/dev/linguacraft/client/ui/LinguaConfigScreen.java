@@ -5,7 +5,7 @@ import dev.linguacraft.client.VoiceSetup;
 import dev.linguacraft.client.voice.Microphones;
 import dev.linguacraft.client.voice.ModelManager;
 import dev.linguacraft.config.LinguaConfig;
-import dev.linguacraft.data.PlayerProgress;
+import dev.linguacraft.data.StudyLanguage;
 import dev.linguacraft.net.LanguageChoicePayload;
 import java.util.List;
 import java.util.function.IntConsumer;
@@ -104,7 +104,7 @@ public final class LinguaConfigScreen extends OptionsSubScreen {
 
 	/** O teste precisa de um modelo já baixado, o que acontece ao escolher o idioma dentro de um mundo. */
 	private Button testButton() {
-		List<String> downloaded = PlayerProgress.languagesOf(PlayerProgress.BOTH).stream().filter(ModelManager::isDownloaded).toList();
+		List<String> downloaded = StudyLanguage.codes().stream().filter(ModelManager::isDownloaded).toList();
 		Button button = Button.builder(Component.translatable("linguacraft.config.test"), pressed -> {
 			downloaded.forEach(ModelManager::model);
 			minecraft.setScreen(new MicTestScreen(downloaded, () -> minecraft.setScreen(this)));

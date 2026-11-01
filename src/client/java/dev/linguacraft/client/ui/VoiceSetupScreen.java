@@ -1,9 +1,9 @@
 package dev.linguacraft.client.ui;
 
 import dev.linguacraft.client.voice.ModelManager;
-import dev.linguacraft.data.PlayerProgress;
+import dev.linguacraft.data.StudyLanguage;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
@@ -16,9 +16,6 @@ public final class VoiceSetupScreen extends Screen {
 	private static final int BAR_HEIGHT = 6;
 	private static final int BUTTON_WIDTH = 160;
 	private static final int MAX_PANEL_WIDTH = 380;
-	private static final Map<String, String> DOWNLOAD_SIZES = Map.of(
-			PlayerProgress.KOREAN, "160 MB",
-			PlayerProgress.JAPANESE, "48 MB");
 
 	private final List<String> languages;
 	private final Runnable onReady;
@@ -41,8 +38,9 @@ public final class VoiceSetupScreen extends Screen {
 		updateButtons();
 	}
 
+	/** Com muitos idiomas para baixar, a lista cresce, mas nunca passa do topo da tela. */
 	private int rowsTop() {
-		return height / 2 - 36 - languages.size() * ROW_HEIGHT / 2;
+		return Math.max(32, height / 2 - 36 - languages.size() * ROW_HEIGHT / 2);
 	}
 
 	private boolean anyFailed() {
@@ -97,7 +95,7 @@ public final class VoiceSetupScreen extends Screen {
 	private void drawRow(GuiGraphics graphics, String language, int left, int y) {
 		ModelManager.Phase phase = ModelManager.phase(language);
 		Component name = Component.translatable("linguacraft.download.size",
-				Component.translatable("linguacraft.language." + language), DOWNLOAD_SIZES.get(language));
+				Component.translatable("linguacraft.language." + language), Objects.requireNonNull(StudyLanguage.byCode(language), language).downloadSize());
 		Component status = status(phase, language);
 		UiTheme.Palette palette = UiDraw.palette();
 		UiDraw.text(graphics, font, name, left, y, palette.ink());

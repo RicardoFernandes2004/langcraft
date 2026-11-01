@@ -60,7 +60,27 @@ class PlayerProgressTest {
 		assertEquals(java.util.List.of(PlayerProgress.KOREAN, PlayerProgress.JAPANESE), PlayerProgress.languagesOf(PlayerProgress.BOTH));
 		assertEquals(java.util.List.of(PlayerProgress.JAPANESE), PlayerProgress.languagesOf(PlayerProgress.JAPANESE));
 		assertTrue(PlayerProgress.isValidLanguage(PlayerProgress.BOTH));
-		assertFalse(PlayerProgress.isValidLanguage("de_de"));
+		assertTrue(PlayerProgress.isValidLanguage("de_de"));
+		assertFalse(PlayerProgress.isValidLanguage("fr_fr"));
+		assertFalse(PlayerProgress.isValidLanguage(""));
+	}
+
+	@Test
+	void aChoiceCanHoldAnyMixOfLanguages() {
+		String choice = PlayerProgress.choiceOf(java.util.List.of(PlayerProgress.KOREAN, PlayerProgress.GERMAN, PlayerProgress.SPANISH));
+		assertEquals("ko_kr,de_de,es_es", choice);
+		assertTrue(PlayerProgress.isValidLanguage(choice));
+		assertEquals(java.util.List.of(PlayerProgress.KOREAN, PlayerProgress.GERMAN, PlayerProgress.SPANISH), PlayerProgress.languagesOf(choice));
+		assertFalse(PlayerProgress.isValidLanguage("ko_kr,fr_fr"));
+	}
+
+	@Test
+	void eachLanguageHasItsOwnVoiceModel() {
+		java.util.List<String> models = java.util.Arrays.stream(dev.linguacraft.data.StudyLanguage.values()).map(dev.linguacraft.data.StudyLanguage::voskModel).toList();
+		assertEquals(5, models.stream().distinct().count());
+		assertEquals(dev.linguacraft.data.StudyLanguage.GERMAN, dev.linguacraft.data.StudyLanguage.byCode(PlayerProgress.GERMAN));
+		assertTrue(dev.linguacraft.data.StudyLanguage.isLatin(PlayerProgress.SPANISH));
+		assertFalse(dev.linguacraft.data.StudyLanguage.isLatin(PlayerProgress.KOREAN));
 	}
 
 	@Test

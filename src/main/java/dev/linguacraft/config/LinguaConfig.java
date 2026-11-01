@@ -51,7 +51,7 @@ public class LinguaConfig {
 	/** Visual do mod. Vazio pergunta na próxima entrada em um mundo. */
 	public String theme = "";
 
-	/** Idioma de quem ainda não escolheu: ko_kr, ja_jp ou both. */
+	/** Idioma de quem ainda não escolheu: um ou mais códigos, separados por vírgula, como ko_kr,de_de. */
 	public String defaultLanguage = "both";
 
 	public int rouletteAutoSpinSeconds = 10;

@@ -2,6 +2,7 @@ package dev.linguacraft.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.linguacraft.LinguaCraft;
+import dev.linguacraft.client.ui.DownloadHud;
 import dev.linguacraft.client.ui.NotebookSounds;
 import dev.linguacraft.client.ui.ScoreHud;
 import dev.linguacraft.client.ui.SpeakAlertHud;
@@ -60,6 +61,7 @@ public class LinguaCraftClient implements ClientModInitializer {
 		}));
 
 		HudElementRegistry.addLast(LinguaCraft.id("score"), ScoreHud::render);
+		HudElementRegistry.addLast(LinguaCraft.id("download"), DownloadHud::render);
 		HudElementRegistry.addLast(LinguaCraft.id("alert"), SpeakAlertHud::render);
 	}
 }

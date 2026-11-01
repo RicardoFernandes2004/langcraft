@@ -6,7 +6,6 @@ import dev.linguacraft.client.lang.Furigana;
 import dev.linguacraft.client.lang.GameNames;
 import dev.linguacraft.client.study.FlashcardDeck;
 import dev.linguacraft.client.study.WorldFlashcards;
-import dev.linguacraft.data.PlayerProgress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -26,7 +25,6 @@ public final class StudyScreen extends NotebookScreen {
 	private static final int MAX_PAGE_HEIGHT = 224;
 	private static final int FILTER_HEIGHT = 16;
 	private static final int FILTER_GAP = 3;
-	private static final int FILTER_COUNT = 4;
 	private static final int BOTTOM_BUTTON_WIDTH = 110;
 	private static final int TOP_BUTTON_WIDTH = 60;
 	private static final int PADDING = 8;
@@ -104,14 +102,17 @@ public final class StudyScreen extends NotebookScreen {
 		addRenderableWidget(new ThemedButton(left + pageWidth - PADDING - TOP_BUTTON_WIDTH, top + 4, TOP_BUTTON_WIDTH, 14,
 				Component.translatable("linguacraft.study.open_alphabet"), button -> minecraft.setScreen(new AlphabetScreen(this))));
 		int inner = pageWidth - PADDING * 2;
-		int filterWidth = (inner - FILTER_GAP * (FILTER_COUNT - 1)) / FILTER_COUNT;
+		int filterWidth = (inner - FILTER_GAP) / 2;
 		int x = left + PADDING;
 		int y = top + 20;
-		addFilter(x, y, filterWidth, "linguacraft.study.all", null);
-		addFilter(x + filterWidth + FILTER_GAP, y, filterWidth, "linguacraft.study.korean", PlayerProgress.KOREAN);
-		addFilter(x + (filterWidth + FILTER_GAP) * 2, y, filterWidth, "linguacraft.study.japanese", PlayerProgress.JAPANESE);
+		addRenderableWidget(new ThemedButton(x, y, filterWidth, FILTER_HEIGHT, languageFilterLabel(language), button -> {
+			language = nextLanguage(language, deck.languages());
+			extraReview = false;
+			startSession();
+			rebuildWidgets();
+		}));
 		Component front = Component.translatable(nativeFront ? "linguacraft.study.front_native" : "linguacraft.study.front_word");
-		addRenderableWidget(new ThemedButton(x + (filterWidth + FILTER_GAP) * 3, y, filterWidth, FILTER_HEIGHT, front, button -> {
+		addRenderableWidget(new ThemedButton(x + filterWidth + FILTER_GAP, y, filterWidth, FILTER_HEIGHT, front, button -> {
 			nativeFront = !nativeFront;
 			revealed = false;
 			rebuildWidgets();
@@ -140,18 +141,6 @@ public final class StudyScreen extends NotebookScreen {
 				rebuildWidgets();
 			});
 		}
-	}
-
-	private void addFilter(int x, int y, int filterWidth, String key, @Nullable String filter) {
-		Component name = Component.translatable(key);
-		boolean selected = filter == null ? language == null : filter.equals(language);
-		Component label = selected ? Component.literal("✔ ").append(name) : name;
-		addRenderableWidget(new ThemedButton(x, y, filterWidth, FILTER_HEIGHT, label, button -> {
-			language = filter;
-			extraReview = false;
-			startSession();
-			rebuildWidgets();
-		}));
 	}
 
 	private void addBottom(int x, int y, String key, Runnable action) {

@@ -1,7 +1,7 @@
 package dev.linguacraft.client.voice;
 
 import dev.linguacraft.LinguaCraft;
-import dev.linguacraft.data.PlayerProgress;
+import dev.linguacraft.data.StudyLanguage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -11,7 +11,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -42,9 +44,6 @@ public final class ModelManager {
 	private static final String WHISPER_FILE = "ggml-tiny.bin";
 	/** O modelo do Whisper é cerca de metade do que o coreano precisa baixar. */
 	private static final int WHISPER_SHARE_PERCENT = 50;
-	private static final Map<String, String> MODEL_NAMES = Map.of(
-			PlayerProgress.KOREAN, "vosk-model-small-ko-0.22",
-			PlayerProgress.JAPANESE, "vosk-model-small-ja-0.22");
 
 	private static final Map<String, CompletableFuture<Model>> MODELS = new ConcurrentHashMap<>();
 	private static final Map<String, Phase> PHASES = new ConcurrentHashMap<>();
@@ -90,8 +89,19 @@ public final class ModelManager {
 	}
 
 	public static boolean isDownloaded(String language) {
-		return Files.isDirectory(modelsDir().resolve(MODEL_NAMES.get(language)))
+		return Files.isDirectory(modelsDir().resolve(modelName(language)))
 				&& (!usesWhisper(language) || Files.isRegularFile(modelsDir().resolve(WHISPER_FILE)));
+	}
+
+	/** Os idiomas sendo baixados agora, em qualquer tela. */
+	public static List<String> downloading() {
+		return PHASES.entrySet().stream()
+				.filter(entry -> entry.getValue() == Phase.DOWNLOADING || entry.getValue() == Phase.EXTRACTING)
+				.map(Map.Entry::getKey).sorted().toList();
+	}
+
+	private static String modelName(String language) {
+		return Objects.requireNonNull(StudyLanguage.byCode(language), language).voskModel();
 	}
 
 	public static Phase phase(String language) {
@@ -121,7 +131,8 @@ public final class ModelManager {
 	}
 
 	private static boolean usesWhisper(String language) {
-		return language.equals(PlayerProgress.KOREAN);
+		StudyLanguage study = StudyLanguage.byCode(language);
+		return study != null && study.whisperLanguage() != null;
 	}
 
 	private static Path modelsDir() {
@@ -130,7 +141,7 @@ public final class ModelManager {
 
 	private static Model load(String language) {
 		try {
-			Path modelDir = modelsDir().resolve(MODEL_NAMES.get(language));
+			Path modelDir = modelsDir().resolve(modelName(language));
 			boolean needsVosk = !Files.isDirectory(modelDir);
 			boolean needsWhisper = usesWhisper(language) && !Files.isRegularFile(modelsDir().resolve(WHISPER_FILE));
 			if (needsWhisper) {
@@ -139,7 +150,7 @@ public final class ModelManager {
 			}
 			if (needsVosk) {
 				PHASES.put(language, Phase.DOWNLOADING);
-				download(language, MODEL_NAMES.get(language), modelsDir(), modelDir, needsWhisper ? WHISPER_SHARE_PERCENT : 0);
+				download(language, modelName(language), modelsDir(), modelDir, needsWhisper ? WHISPER_SHARE_PERCENT : 0);
 			}
 			PHASES.put(language, Phase.LOADING);
 			// Esconde os avisos de palavras fora do vocabulário, que são normais no modo restrito.

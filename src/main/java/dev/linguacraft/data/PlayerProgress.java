@@ -2,15 +2,20 @@ package dev.linguacraft.data;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 /** Idioma, placar e preferências, salvos por jogador. */
 public record PlayerProgress(String language, int streak, boolean itemsEnabled, boolean mobsEnabled, boolean languageChosen, int bestStreak, int totalCorrect, int totalWrong) {
 	public static final String KOREAN = "ko_kr";
 	public static final String JAPANESE = "ja_jp";
+	public static final String ENGLISH = "en_us";
+	public static final String GERMAN = "de_de";
+	public static final String SPANISH = "es_es";
+	/** Coreano e japonês. É o valor salvo nos mundos antigos, de quando só havia esses dois. */
 	public static final String BOTH = "both";
-	private static final Set<String> VALID_LANGUAGES = Set.of(KOREAN, JAPANESE, BOTH);
+	private static final String SEPARATOR = ",";
 
 	public static final Codec<PlayerProgress> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 			Codec.STRING.fieldOf("language").forGetter(PlayerProgress::language),
@@ -27,13 +32,22 @@ public record PlayerProgress(String language, int streak, boolean itemsEnabled, 
 		return new PlayerProgress(language, 0, true, true, false, 0, 0, 0);
 	}
 
-	public static boolean isValidLanguage(String language) {
-		return VALID_LANGUAGES.contains(language);
+	public static boolean isValidLanguage(String choice) {
+		if (choice.equals(BOTH)) {
+			return true;
+		}
+		String[] parts = choice.split(SEPARATOR);
+		return parts.length > 0 && Arrays.stream(parts).allMatch(part -> StudyLanguage.byCode(part) != null);
 	}
 
-	/** Os idiomas individuais que uma escolha representa. */
+	/** Os idiomas individuais que uma escolha representa. A escolha pode ter vários, separados por vírgula. */
 	public static List<String> languagesOf(String choice) {
-		return choice.equals(BOTH) ? List.of(KOREAN, JAPANESE) : List.of(choice);
+		return choice.equals(BOTH) ? List.of(KOREAN, JAPANESE) : List.of(choice.split(SEPARATOR));
+	}
+
+	/** O contrário de {@link #languagesOf}, para salvar uma escolha de vários idiomas. */
+	public static String choiceOf(Collection<String> languages) {
+		return String.join(SEPARATOR, languages);
 	}
 
 	public PlayerProgress afterWin() {

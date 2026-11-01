@@ -8,6 +8,7 @@ import dev.linguacraft.challenge.Minigame;
 import dev.linguacraft.challenge.PlayerTitle;
 import dev.linguacraft.challenge.SubjectType;
 import dev.linguacraft.data.PlayerProgress;
+import dev.linguacraft.data.StudyLanguage;
 import dev.linguacraft.net.OpenScreenPayload;
 import java.util.List;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -82,9 +83,13 @@ public final class LinguaCommand {
 								}))))
 				.then(Commands.literal("idioma")
 						.executes(context -> openScreen(context.getSource(), OpenScreenPayload.Target.LANGUAGE))
-						.then(language("coreano", PlayerProgress.KOREAN))
-						.then(language("japones", PlayerProgress.JAPANESE))
-						.then(language("ambos", PlayerProgress.BOTH)))
+						.then(language("coreano", StudyLanguage.KOREAN))
+						.then(language("japones", StudyLanguage.JAPANESE))
+						.then(language("ingles", StudyLanguage.ENGLISH))
+						.then(language("alemao", StudyLanguage.GERMAN))
+						.then(language("espanhol", StudyLanguage.SPANISH))
+						.then(languageChoice("ambos", PlayerProgress.BOTH, "linguacraft.language.both"))
+						.then(languageChoice("todos", PlayerProgress.choiceOf(StudyLanguage.codes()), "linguacraft.language.all")))
 				.then(Commands.literal("tema").executes(context -> openScreen(context.getSource(), OpenScreenPayload.Target.THEME)))
 				.then(Commands.literal("config").executes(context -> openScreen(context.getSource(), OpenScreenPayload.Target.CONFIG)))
 				.then(Commands.literal("estudar").executes(context -> openScreen(context.getSource(), OpenScreenPayload.Target.STUDY)))
@@ -99,13 +104,16 @@ public final class LinguaCommand {
 		return Commands.literal(name).executes(context -> challenge(context.getSource(), type, minigame));
 	}
 
-	private static LiteralArgumentBuilder<CommandSourceStack> language(String name, String language) {
+	private static LiteralArgumentBuilder<CommandSourceStack> language(String name, StudyLanguage language) {
+		return languageChoice(name, language.code(), "linguacraft.language." + language.code());
+	}
+
+	private static LiteralArgumentBuilder<CommandSourceStack> languageChoice(String name, String choice, String displayKey) {
 		return Commands.literal(name).executes(context -> {
 			ServerPlayer player = context.getSource().getPlayerOrException();
-			LinguaCraft.setProgress(player, LinguaCraft.progress(player).withLanguage(language));
+			LinguaCraft.setProgress(player, LinguaCraft.progress(player).withLanguage(choice));
 			LinguaCraft.challenges.onLanguageChanged(player);
-			context.getSource().sendSuccess(() -> Component.translatable("linguacraft.command.language",
-					Component.translatable("linguacraft.language." + language)), false);
+			context.getSource().sendSuccess(() -> Component.translatable("linguacraft.command.language", Component.translatable(displayKey)), false);
 			return 1;
 		});
 	}

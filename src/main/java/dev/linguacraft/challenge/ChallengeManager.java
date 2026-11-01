@@ -267,10 +267,8 @@ public final class ChallengeManager {
 	}
 
 	private String resolveLanguage(PlayerProgress progress) {
-		if (!progress.language().equals(PlayerProgress.BOTH)) {
-			return progress.language();
-		}
-		return random.nextBoolean() ? PlayerProgress.KOREAN : PlayerProgress.JAPANESE;
+		List<String> languages = PlayerProgress.languagesOf(progress.language());
+		return languages.get(random.nextInt(languages.size()));
 	}
 
 	private int streakGoal() {

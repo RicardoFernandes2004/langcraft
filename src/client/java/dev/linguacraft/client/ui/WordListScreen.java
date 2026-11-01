@@ -7,7 +7,6 @@ import dev.linguacraft.client.lang.GameNames;
 import dev.linguacraft.client.study.AnswerMethod;
 import dev.linguacraft.client.study.FlashcardDeck;
 import dev.linguacraft.client.study.WorldFlashcards;
-import dev.linguacraft.data.PlayerProgress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -23,8 +22,7 @@ public final class WordListScreen extends NotebookScreen {
 	private static final int MAX_PAGE_HEIGHT = 224;
 	private static final int PADDING = 8;
 	private static final int FILTER_HEIGHT = 16;
-	private static final int FILTER_GAP = 3;
-	private static final int FILTER_COUNT = 3;
+	private static final int FILTER_WIDTH = 150;
 	private static final int HEADER_TOP = 40;
 	private static final int LIST_TOP = 51;
 	private static final int LIST_BOTTOM_MARGIN = 30;
@@ -70,12 +68,13 @@ public final class WordListScreen extends NotebookScreen {
 		loadRows();
 
 		int inner = pageWidth(MAX_PAGE_WIDTH) - PADDING * 2;
-		int filterWidth = (inner - FILTER_GAP * (FILTER_COUNT - 1)) / FILTER_COUNT;
 		int x = pageLeft(MAX_PAGE_WIDTH) + PADDING;
 		int y = pageTop(MAX_PAGE_HEIGHT) + 20;
-		addFilter(x, y, filterWidth, "linguacraft.study.all", null);
-		addFilter(x + filterWidth + FILTER_GAP, y, filterWidth, "linguacraft.study.korean", PlayerProgress.KOREAN);
-		addFilter(x + (filterWidth + FILTER_GAP) * 2, y, filterWidth, "linguacraft.study.japanese", PlayerProgress.JAPANESE);
+		addRenderableWidget(new ThemedButton(x, y, FILTER_WIDTH, FILTER_HEIGHT, languageFilterLabel(language), button -> {
+			language = nextLanguage(language, deck.languages());
+			page = 0;
+			rebuildWidgets();
+		}));
 
 		int bottom = pageTop(MAX_PAGE_HEIGHT) + pageHeight(MAX_PAGE_HEIGHT) - 25;
 		addRenderableWidget(new ThemedButton(x, bottom, STUDY_BUTTON_WIDTH, 20, Component.translatable("linguacraft.words.study"), button -> openStudy()));
@@ -94,17 +93,6 @@ public final class WordListScreen extends NotebookScreen {
 			FlashcardDeck.Card card = words.get(i);
 			rows.add(new Row(card, GameNames.icon(SubjectType.valueOf(card.type), card.subject), ChallengeClient.segments(card.word, card.language)));
 		}
-	}
-
-	private void addFilter(int x, int y, int filterWidth, String key, @Nullable String filter) {
-		Component name = Component.translatable(key);
-		boolean selected = filter == null ? language == null : filter.equals(language);
-		Component label = selected ? Component.literal("✔ ").append(name) : name;
-		addRenderableWidget(new ThemedButton(x, y, filterWidth, FILTER_HEIGHT, label, button -> {
-			language = filter;
-			page = 0;
-			rebuildWidgets();
-		}));
 	}
 
 	private void changePage(int delta) {

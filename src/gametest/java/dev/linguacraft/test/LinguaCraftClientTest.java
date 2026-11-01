@@ -212,7 +212,7 @@ public class LinguaCraftClientTest implements FabricClientGameTest {
 		context.waitTicks(2);
 		check(context.computeOnClient(mc -> mc.screen instanceof LanguageScreen), "Esc nao fecha a tela de idioma");
 
-		clickButton(context.computeOnClient(mc -> I18n.get("linguacraft.setup.both"))::equals);
+		chooseLanguages("coreano", "japones");
 		context.waitForScreen(MicrophoneScreen.class);
 		context.waitTicks(2);
 		context.takeScreenshot("microfone-escolha");
@@ -238,7 +238,7 @@ public class LinguaCraftClientTest implements FabricClientGameTest {
 		context.waitTicks(5);
 		check(serverReady(), "continuar sem voz libera os desafios");
 		PlayerProgress progress = world.getServer().computeOnServer(server -> LinguaCraft.progress(player(server)));
-		check(progress.languageChosen() && progress.language().equals(PlayerProgress.BOTH), "a escolha deve ser salva: " + progress);
+		check(progress.languageChosen() && progress.language().equals(PlayerProgress.KOREAN + "," + PlayerProgress.JAPANESE), "a escolha deve ser salva: " + progress);
 
 		command("clear @p");
 		command("give @p minecraft:stone 8");
@@ -301,7 +301,7 @@ public class LinguaCraftClientTest implements FabricClientGameTest {
 		world = context.worldBuilder().create();
 		context.waitForScreen(LanguageScreen.class);
 		check(context.computeOnClient(mc -> WorldFlashcards.current().size(null)) == 0, "um mundo novo comeca sem flashcards");
-		clickButton(context.computeOnClient(mc -> I18n.get("linguacraft.setup.korean"))::equals);
+		chooseLanguages("coreano");
 		context.waitForScreen(MicrophoneScreen.class);
 		context.waitTicks(1);
 		clickButtonContaining(Microphones.defaultLabelKey());
@@ -319,7 +319,7 @@ public class LinguaCraftClientTest implements FabricClientGameTest {
 		world.close();
 		world = context.worldBuilder().create();
 		context.waitForScreen(LanguageScreen.class);
-		clickButton(context.computeOnClient(mc -> I18n.get("linguacraft.setup.both"))::equals);
+		chooseLanguages("coreano", "japones");
 		context.waitForScreen(MicrophoneScreen.class);
 		context.waitTicks(1);
 		clickButtonContaining(Microphones.defaultLabelKey());
@@ -400,6 +400,14 @@ public class LinguaCraftClientTest implements FabricClientGameTest {
 		context.setScreen(() -> null);
 	}
 
+	private void chooseLanguages(String... commandNames) {
+		for (String name : commandNames) {
+			clickButtonContaining("linguacraft.setup." + name);
+			context.waitTicks(2);
+		}
+		clickButtonContaining("linguacraft.setup.confirm");
+	}
+
 	/** Digita no chat, como o jogador, porque o chat se fecha depois de enviar o comando e poderia fechar a tela. */
 	private void chat(String text) {
 		context.getInput().pressKey(options -> options.keyChat);
@@ -445,7 +453,9 @@ public class LinguaCraftClientTest implements FabricClientGameTest {
 		context.waitTicks(2);
 		clickButtonContaining("linguacraft.config.language");
 		context.waitForScreen(LanguageScreen.class);
-		clickButton(context.computeOnClient(mc -> I18n.get("linguacraft.setup.korean"))::equals);
+		clickButtonContaining("linguacraft.setup.japones");
+		context.waitTicks(2);
+		clickButtonContaining("linguacraft.setup.confirm");
 		waitUntil(() -> context.computeOnClient(mc -> mc.screen == null) && serverReady());
 		check(currentLanguage().equals(PlayerProgress.KOREAN), "a tela de idioma troca o idioma");
 
@@ -483,7 +493,7 @@ public class LinguaCraftClientTest implements FabricClientGameTest {
 			context.setScreen(() -> new ThemeScreen((Screen) null));
 			context.waitTicks(2);
 			context.takeScreenshot(name + "-escolha");
-			context.setScreen(() -> new LanguageScreen(null, language -> { }));
+			context.setScreen(() -> new LanguageScreen(null, List.of(PlayerProgress.KOREAN), language -> { }));
 			context.waitTicks(2);
 			context.takeScreenshot(name + "-idioma");
 			context.setScreen(() -> new MicrophoneScreen(null, microphone -> { }));

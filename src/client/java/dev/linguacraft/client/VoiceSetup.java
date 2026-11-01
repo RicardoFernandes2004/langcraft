@@ -20,12 +20,14 @@ import org.jetbrains.annotations.Nullable;
 /** Conduz tema, idioma, microfone, download e palavra de teste, antes de os desafios começarem. */
 public final class VoiceSetup {
 	private static @Nullable VoiceSetupPayload pending;
+	private static List<String> currentLanguages = List.of();
 
 	private VoiceSetup() {
 	}
 
 	public static void onSetup(VoiceSetupPayload payload) {
 		pending = payload;
+		currentLanguages = PlayerProgress.languagesOf(payload.language());
 	}
 
 	/** Espera não haver nenhuma tela aberta: a tela de carregamento do mundo fecharia a nossa. */
@@ -53,7 +55,7 @@ public final class VoiceSetup {
 	/** Troca de idioma pedida pelo jogador. O servidor responde pedindo os modelos do novo idioma. */
 	public static void openLanguageChange(@Nullable Screen parent) {
 		Minecraft minecraft = Minecraft.getInstance();
-		minecraft.setScreen(new LanguageScreen(parent, language -> {
+		minecraft.setScreen(new LanguageScreen(parent, currentLanguages, language -> {
 			ClientPlayNetworking.send(new LanguageChoicePayload(language));
 			minecraft.setScreen(null);
 		}));
@@ -61,6 +63,7 @@ public final class VoiceSetup {
 
 	private static void onLanguageChosen(String language) {
 		ClientPlayNetworking.send(new LanguageChoicePayload(language));
+		currentLanguages = PlayerProgress.languagesOf(language);
 		Minecraft minecraft = Minecraft.getInstance();
 		minecraft.setScreen(new MicrophoneScreen(null, microphone -> {
 			LinguaCraft.config.microphone = microphone;

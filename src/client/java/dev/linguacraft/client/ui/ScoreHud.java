@@ -19,12 +19,20 @@ public final class ScoreHud {
 	private static final int ROW_HEIGHT = 10;
 	private static final int ROWS = 4;
 
+	private static int lastBottom;
+
 	private ScoreHud() {
+	}
+
+	/** Onde o placar terminou neste quadro, para a barra de download ficar logo abaixo. Zero se ele não apareceu. */
+	static int lastBottom() {
+		return lastBottom;
 	}
 
 	public static void render(GuiGraphics graphics, DeltaTracker delta) {
 		Minecraft minecraft = Minecraft.getInstance();
 		ScorePayload score = ChallengeClient.score();
+		lastBottom = 0;
 		if (score == null || !LinguaCraft.config.showScoreboard || minecraft.options.hideGui) {
 			return;
 		}
@@ -45,6 +53,7 @@ public final class ScoreHud {
 		int x = MARGIN;
 		int y = belowAlert(graphics, x + width) ? SpeakAlertHud.bottom() + MARGIN : MARGIN;
 		UiDraw.plainPanel(graphics, x, y, width, height, UiDraw.PanelState.NORMAL);
+		lastBottom = y + height;
 		int textX = x + PADDING;
 		int textY = y + PADDING;
 		UiDraw.text(graphics, font, title, textX, textY, palette.accent());

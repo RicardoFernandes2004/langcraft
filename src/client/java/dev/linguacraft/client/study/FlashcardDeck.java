@@ -149,6 +149,11 @@ public final class FlashcardDeck {
 		return session;
 	}
 
+	/** Os idiomas que têm alguma palavra, para o filtro das telas. */
+	public List<String> languages() {
+		return cards.values().stream().map(card -> card.language).distinct().sorted().toList();
+	}
+
 	/** Todas as palavras, da descoberta mais recente para a mais antiga. */
 	public List<Card> words(@Nullable String language) {
 		List<Card> words = new ArrayList<>(cards.values().stream().filter(card -> language == null || card.language.equals(language)).toList());

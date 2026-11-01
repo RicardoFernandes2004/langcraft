@@ -17,13 +17,15 @@ Em servidores, o mod precisa estar no servidor e no jogo de cada jogador. Jogado
 ## Primeira entrada no mundo
 
 1. Na primeira vez, uma tela pede o tema visual, com uma amostra de cada um. A escolha vale para o jogo todo, em qualquer mundo.
-2. Uma tela pergunta qual idioma você quer praticar: coreano, japonês ou ambos. A escolha fica salva por jogador em cada mundo.
+2. Uma tela pergunta quais idiomas você quer praticar: coreano, japonês, inglês, alemão ou espanhol. Dá para marcar quantos quiser, e cada desafio sorteia um deles. A escolha fica salva por jogador em cada mundo.
 3. Outra tela lista os microfones do computador, com o padrão do sistema em primeiro lugar. Se o microfone escolhido sumir depois, o mod usa o padrão.
 4. Se o modelo de voz ainda não foi baixado, uma tela mostra o progresso e fecha sozinha ao terminar. Dá para continuar sem esperar, o que pula o teste. Se o download falhar, a tela oferece tentar de novo ou continuar sem voz, só com digitação.
 5. Uma palavra de teste aparece em cada idioma escolhido, com a barra de volume do microfone e o que foi entendido. Errar não tem punição, e dá para trocar de microfone ou pular o teste.
 6. Só depois disso os desafios começam a contar.
 
-Trocar de idioma com `/lingua idioma` segue o mesmo caminho: se faltar o modelo, a tela de download aparece.
+Trocar de idioma com `/lingua idioma` segue o mesmo caminho: se faltar o modelo, a tela de download aparece. Durante um desafio ou depois de "Continuar sem esperar", uma barra no canto da tela continua mostrando o progresso.
+
+A voz em inglês, alemão e espanhol usa só o Vosk e ainda não foi medida com gravações de nativos, ao contrário do coreano e do japonês. Na digitação, esses idiomas aceitam a escrita sem acento, e o alemão aceita `ae`, `oe`, `ue` e `ss`. O treino do alfabeto só existe para o coreano e o japonês.
 
 ## Temas
 
@@ -103,7 +105,7 @@ A cada entrada no mundo, um aviso no chat lembra a tecla do caderno e o `/lingua
 - `/lingua desafio [item|mob] [fala|quiz|segurar]`: inicia um desafio agora. `segurar` só funciona com `item` e precisa de um item que não esteja na sua mão.
 - `/lingua tema`: abre a tela de escolha do tema.
 - `/lingua idioma`: abre a tela de escolha do idioma.
-- `/lingua idioma <coreano|japones|ambos>`: escolhe o idioma direto.
+- `/lingua idioma <coreano|japones|ingles|alemao|espanhol|ambos|todos>`: escolhe direto. `ambos` é coreano e japonês. Para outra combinação, use a tela.
 - `/lingua config`: abre a tela de configuração, a mesma da engrenagem do Mod Menu.
 - `/lingua estudar`: abre os flashcards.
 - `/lingua palavras`: abre a lista de palavras do mundo.

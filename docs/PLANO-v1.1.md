@@ -38,18 +38,10 @@ Etapas:
 3. Implementar a classificação automática de mobs.
 4. Medir a voz com nomes reais e implementar a conferência do vocabulário.
 
-## 2. Alemão e o cadastro de idiomas
+## 2. Voz nos novos idiomas
 
-Os nomes vêm do `de_de` do próprio jogo, e a fonte já tem ä, ö, ü e ß. Coreano e japonês estão escritos direto em vários arquivos, e a opção "Ambos" só prevê dois idiomas.
+Inglês, alemão e espanhol já entraram na 1.0, mas a voz deles ainda não foi medida.
 
-| Parte | O que muda | Trabalho |
-|---|---|---|
-| Cadastro de idiomas | Reunir em um só lugar o código, o modelo, o tamanho e as regras de cada idioma | Médio, só uma vez |
-| Opção "Ambos" | Virar escolha de vários idiomas, mantendo os mundos salvos com `both` | Médio |
-| Telas e comandos | Botão na tela de idioma, `/lingua idioma alemao` e textos | Baixo |
-| Digitação | Aceitar `ae` no lugar de `ä` e `ss` no lugar de `ß` | Baixo |
-| Voz | Baixar o modelo do Vosk em alemão, medir com gravações de nativos e ajustar | Incerto |
-
-O maior risco é a voz. Nomes longos, como `Diamantspitzhacke`, podem não existir no modelo pequeno do Vosk. O teste de medição (`VoiceBenchmarkTest`) já existe, então a decisão de somar ou não o Whisper sai das medições.
-
-Com o cadastro pronto, espanhol, francês e italiano ficam mais baratos. Chinês precisaria de uma ajuda de leitura, como o pinyin. Árabe é o mais difícil, por ser escrito da direita para a esquerda.
+- **Medir:** gravar ou reunir falas de nativos e rodar o `VoiceBenchmarkTest`, como foi feito no coreano e no japonês. A decisão de somar ou não o Whisper sai das medições.
+- **Maior risco:** nomes longos em alemão, como `Diamantspitzhacke`, podem não existir no modelo pequeno do Vosk.
+- **Outros idiomas:** cada um novo começa por `StudyLanguage`. Francês e italiano devem ser parecidos com o espanhol. Chinês precisaria de uma ajuda de leitura, como o pinyin. Árabe é o mais difícil, por ser escrito da direita para a esquerda.

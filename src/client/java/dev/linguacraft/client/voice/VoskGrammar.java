@@ -3,10 +3,12 @@ package dev.linguacraft.client.voice;
 import com.google.gson.Gson;
 import dev.linguacraft.client.match.KanaNormalizer;
 import dev.linguacraft.data.PlayerProgress;
+import dev.linguacraft.data.StudyLanguage;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 import java.util.stream.Collectors;
 
@@ -56,6 +58,10 @@ public final class VoskGrammar {
 
 	/** O modelo japonês conhece palavras, não nomes inteiros: ダイヤモンドの剣 vira ダイヤモンド の 剣. */
 	private static String phrase(String name, String language) {
+		// O vocabulário dos modelos de alfabeto latino é todo em minúsculas, e Iron Sword ficaria de fora.
+		if (StudyLanguage.isLatin(language)) {
+			return name.toLowerCase(Locale.ROOT);
+		}
 		if (!language.equals(PlayerProgress.JAPANESE)) {
 			return name;
 		}
