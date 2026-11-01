@@ -10,19 +10,19 @@ Use o `.jar` do seu loader e nenhum dos outros.
 
 1. Instale o [Fabric Loader](https://fabricmc.net/use/installer/) para o Minecraft 1.21.11.
 2. Baixe a [Fabric API](https://modrinth.com/mod/fabric-api) para 1.21.11 e coloque na pasta `mods`.
-3. Coloque `langcraft-fabric-1.0.0.jar` (em `fabric/build/libs`) na mesma pasta.
+3. Coloque `langcraft-fabric-1.21.11-1.0.0.jar` (em `fabric/build/libs`) na mesma pasta.
 4. Opcional: coloque também o [Mod Menu](https://modrinth.com/mod/modmenu) 17.0.1, que adiciona o botão **Mods** e a engrenagem da configuração.
 5. Abra o jogo com o perfil Fabric 1.21.11.
 
 **NeoForge**
 
 1. Instale o [NeoForge](https://neoforged.net/) 21.11 para o Minecraft 1.21.11.
-2. Coloque `langcraft-neoforge-1.0.0.jar` (em `neoforge/build/libs`) na pasta `mods`.
+2. Coloque `langcraft-neoforge-1.21.11-1.0.0.jar` (em `neoforge/build/libs`) na pasta `mods`.
 
 **Forge**
 
 1. Instale o [Forge](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.21.11.html) 61 para o Minecraft 1.21.11.
-2. Coloque `langcraft-forge-1.0.0.jar` (em `forge/build/libs`) na pasta `mods`. O arquivo terminado em `-slim` não leva as bibliotecas de voz e não serve para jogar.
+2. Coloque `langcraft-forge-1.21.11-1.0.0.jar` (em `forge/build/libs`) na pasta `mods`. O arquivo terminado em `-slim` não leva as bibliotecas de voz e não serve para jogar.
 
 No NeoForge e no Forge, a configuração abre pelo botão **Config** da lista de mods.
 

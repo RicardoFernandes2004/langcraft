@@ -6,6 +6,11 @@
 	"description": "Practice Korean, Japanese, English, German and Spanish vocabulary with the items in your inventory. Lose a challenge and you pay for it.",
 	"authors": ["RicardoFernandes2004"],
 	"license": "MIT",
+	"icon": "assets/langcraft/icon.png",
+	"contact": {
+		"sources": "https://github.com/RicardoFernandes2004/linguacraft",
+		"issues": "https://github.com/RicardoFernandes2004/linguacraft/issues"
+	},
 	"environment": "*",
 	"entrypoints": {
 		"main": ["dev.langcraft.fabric.LangCraftFabric"],

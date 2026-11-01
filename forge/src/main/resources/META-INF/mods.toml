@@ -1,12 +1,15 @@
 modLoader = "javafml"
 loaderVersion = "[61,)"
 license = "MIT"
+issueTrackerURL = "https://github.com/RicardoFernandes2004/linguacraft/issues"
 
 [[mods]]
 modId = "langcraft"
 version = "${version}"
 displayName = "LangCraft"
 authors = "RicardoFernandes2004"
+logoFile = "assets/langcraft/icon.png"
+displayURL = "https://github.com/RicardoFernandes2004/linguacraft"
 description = '''Practice Korean, Japanese, English, German and Spanish vocabulary with the items in your inventory. Lose a challenge and you pay for it.'''
 
 [[dependencies.langcraft]]
