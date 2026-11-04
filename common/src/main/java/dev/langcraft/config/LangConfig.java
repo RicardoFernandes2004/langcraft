@@ -27,6 +27,12 @@ public class LangConfig {
 	public int quizSeconds = 20;
 	public int holdSeconds = 30;
 
+	/** Por quantos segundos depois de levar dano de um mob o jogador está em combate. No combate, os desafios automáticos são só de fala. */
+	public int combatSeconds = 10;
+
+	/** Itens que nunca são perguntados, como um item de outro mod com defeito. Exemplo: "botania:manasteel_ingot". */
+	public List<String> blockedItems = new ArrayList<>();
+
 	/** Similaridade mínima, de 0 a 1, para aceitar uma resposta falada. */
 	public double voiceSimilarity = 0.75;
 

@@ -74,6 +74,10 @@ public class LangCraftClientTest implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
+		// Com esta opção, roda só o roteiro das capturas.
+		if (Boolean.getBoolean("langcraft.shots")) {
+			return;
+		}
 		this.context = context;
 		LangConfig config = LangCraft.config;
 		config.itemIntervalMinSeconds = FAR_FUTURE_SECONDS;

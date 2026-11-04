@@ -1,11 +1,11 @@
 {
 	"schemaVersion": 1,
 	"id": "langcraft-test",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"name": "LangCraft Tests",
 	"environment": "*",
 	"entrypoints": {
-		"fabric-client-gametest": ["dev.langcraft.test.LangCraftClientTest"]
+		"fabric-client-gametest": ["dev.langcraft.test.LangCraftClientTest", "dev.langcraft.test.StoreScreenshots"]
 	},
 	"depends": {
 		"langcraft": "*"

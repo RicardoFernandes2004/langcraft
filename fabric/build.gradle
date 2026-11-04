@@ -29,6 +29,13 @@ fabricApi {
 	}
 }
 
+// Tira só as capturas das páginas do mod: gradlew :fabric:runClientGameTest -Pshots
+tasks.named('runClientGameTest') {
+	if (project.hasProperty('shots')) {
+		systemProperty 'langcraft.shots', 'true'
+	}
+}
+
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	mappings loom.officialMojangMappings()

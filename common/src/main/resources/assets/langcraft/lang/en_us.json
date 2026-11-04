@@ -287,7 +287,7 @@
 	"langcraft.score.shields": "Shields: %s",
 	"langcraft.message.shielded": "Your shield took the hit. No punishment this time.",
 	"langcraft.message.shield_gained": "You earned a shield! You now have %s.",
-	"langcraft.message.levels_lost": "The mistake cost you %s experience levels.",
+	"langcraft.message.levels_lost": "The mistake cost you experience levels: %s.",
 	"langcraft.help.roulette": "opens a special roulette",
 	"langcraft.command.no_slices": "This roulette has no slices in the config.",
 	"langcraft.effect.spared": "You had nothing to lose this time.",
@@ -334,5 +334,18 @@
 	"langcraft.effect.netherite": "Netherite",
 	"langcraft.effect.netherite.desc": "You gained a netherite ingot!",
 	"langcraft.effect.enchanted_apple": "God apple",
-	"langcraft.effect.enchanted_apple.desc": "You gained an enchanted golden apple!"
+	"langcraft.effect.enchanted_apple.desc": "You gained an enchanted golden apple!",
+	"langcraft.help.group.blocking": "Blocked items",
+	"langcraft.help.block": "stops asking about the item in your hand",
+	"langcraft.help.unblock": "allows a blocked item again",
+	"langcraft.help.block_list": "lists the blocked items",
+	"langcraft.command.block_empty_hand": "Hold the item you want to block.",
+	"langcraft.command.unblock_empty_hand": "Hold the item you want to unblock, or type its id after the command.",
+	"langcraft.command.blocked": "%s will no longer be asked in challenges. To undo, use /lang unblock.",
+	"langcraft.command.already_blocked": "%s is already blocked.",
+	"langcraft.command.unblocked": "%s can be asked in challenges again.",
+	"langcraft.command.not_blocked": "%s is not blocked.",
+	"langcraft.command.blocked_list": "Blocked items:",
+	"langcraft.command.blocked_none": "No items are blocked.",
+	"langcraft.command.click_unblock": "Click to unblock"
 }

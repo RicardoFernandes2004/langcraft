@@ -26,8 +26,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -41,6 +43,7 @@ public final class ChallengeManager {
 	/** Duração da animação da roleta. Os itens só mudam quando ela termina. */
 	private static final int SPIN_TICKS = 80;
 	private static final int TICKS_PER_DAY = 24000;
+	private static final int NEVER = Integer.MIN_VALUE;
 
 	private final LangConfig config;
 	private final Map<UUID, PlayerState> states = new HashMap<>();
@@ -65,7 +68,7 @@ public final class ChallengeManager {
 		if (state.active != null || state.roulette != null) {
 			return "langcraft.command.busy";
 		}
-		if (minigame == Minigame.HOLD && holdableItems(player, state).isEmpty() && !InventoryPicker.itemTypes(player, state.unavailableItems).isEmpty()) {
+		if (minigame == Minigame.HOLD && holdableItems(player, state).isEmpty() && !InventoryPicker.itemTypes(player, excludedItems(state)).isEmpty()) {
 			return "langcraft.command.hold_needs_other";
 		}
 		if (!start(player, state, type, minigame)) {
@@ -148,6 +151,7 @@ public final class ChallengeManager {
 			cancel(player);
 			return;
 		}
+		trackCombat(player, state);
 		if (!player.isAlive()) {
 			return;
 		}
@@ -217,11 +221,12 @@ public final class ChallengeManager {
 	}
 
 	private boolean startItem(ServerPlayer player, PlayerState state, @Nullable Minigame requested) {
-		List<Item> candidates = InventoryPicker.itemTypes(player, state.unavailableItems);
+		List<Item> candidates = InventoryPicker.itemTypes(player, excludedItems(state));
 		if (candidates.isEmpty()) {
 			return false;
 		}
-		Minigame minigame = requested != null ? requested : Minigame.values()[random.nextInt(Minigame.values().length)];
+		// No meio do combate, nada que peça clique ou troca de item: só a fala.
+		Minigame minigame = requested != null ? requested : inCombat(state) ? Minigame.SPEAK : Minigame.values()[random.nextInt(Minigame.values().length)];
 		if (minigame == Minigame.HOLD) {
 			List<Item> holdable = holdableItems(player, state);
 			// Só o sorteio automático troca de minigame. Quem pediu pelo comando recebe o que pediu.
@@ -239,7 +244,39 @@ public final class ChallengeManager {
 	/** Itens que podem ser pedidos no Pegue na mão: nunca o que já está na mão. */
 	private List<Item> holdableItems(ServerPlayer player, PlayerState state) {
 		ItemStack hand = player.getMainHandItem();
-		return InventoryPicker.itemTypes(player, state.unavailableItems).stream().filter(item -> !hand.is(item)).toList();
+		return InventoryPicker.itemTypes(player, excludedItems(state)).stream().filter(item -> !hand.is(item)).toList();
+	}
+
+	/** Os itens sem nome no idioma, que só valem nesta sessão, e os bloqueados na configuração. */
+	private Set<String> excludedItems(PlayerState state) {
+		Set<String> excluded = new HashSet<>(state.unavailableItems);
+		excluded.addAll(config.blockedItems);
+		return excluded;
+	}
+
+	/**
+	 * Bloqueia um item para todos os jogadores e salva a configuração. Se ele for a palavra do desafio em
+	 * andamento, o desafio é cancelado sem castigo, porque o item pode ser justamente o que trava a tela.
+	 */
+	public boolean blockItem(ServerPlayer player, String id) {
+		if (config.blockedItems.contains(id)) {
+			return false;
+		}
+		config.blockedItems.add(id);
+		config.save();
+		PlayerState state = states.get(player.getUUID());
+		if (state != null && state.active != null && state.active.type == SubjectType.ITEM && state.active.subject.equals(id)) {
+			cancel(player);
+		}
+		return true;
+	}
+
+	public boolean unblockItem(String id) {
+		if (!config.blockedItems.remove(id)) {
+			return false;
+		}
+		config.save();
+		return true;
 	}
 
 	private boolean startMob(ServerPlayer player, PlayerState state, @Nullable Minigame requested) {
@@ -248,7 +285,7 @@ public final class ChallengeManager {
 		if (mob.isEmpty()) {
 			return false;
 		}
-		Minigame minigame = requested != null ? requested : (random.nextBoolean() ? Minigame.SPEAK : Minigame.QUIZ);
+		Minigame minigame = requested != null ? requested : (inCombat(state) || random.nextBoolean() ? Minigame.SPEAK : Minigame.QUIZ);
 		begin(player, state, minigame, SubjectType.MOB, mob.get(), requested);
 		return true;
 	}
@@ -310,10 +347,15 @@ public final class ChallengeManager {
 				}
 			}
 			// O modelo de voz não conhece a palavra. Mantém a palavra sorteada e pergunta de outro jeito.
+			// No combate, o popup não pode aparecer, então tenta de novo daqui a pouco.
 			case NOT_SPEAKABLE -> {
 				if (challenge.minigame == Minigame.SPEAK && challenge.requested == null) {
 					state.active = null;
-					begin(player, state, Minigame.QUIZ, challenge.type, challenge.subject, null);
+					if (inCombat(state)) {
+						retry(state, challenge.type, NOTHING_TO_ASK_RETRY_TICKS);
+					} else {
+						begin(player, state, Minigame.QUIZ, challenge.type, challenge.subject, null);
+					}
 				}
 			}
 			case UNAVAILABLE -> {
@@ -323,13 +365,32 @@ public final class ChallengeManager {
 			}
 			case BUSY -> {
 				state.active = null;
-				if (challenge.type == SubjectType.ITEM) {
-					state.timers.retryItem(RETRY_DELAY_TICKS);
-				} else {
-					state.timers.retryMob(RETRY_DELAY_TICKS);
-				}
+				retry(state, challenge.type, RETRY_DELAY_TICKS);
 			}
 		}
+	}
+
+	private static void retry(PlayerState state, SubjectType type, int ticks) {
+		if (type == SubjectType.ITEM) {
+			state.timers.retryItem(ticks);
+		} else {
+			state.timers.retryMob(ticks);
+		}
+	}
+
+	/**
+	 * O jogo não tem um estado de combate, então conta como combate ter levado dano de um mob nos últimos
+	 * segundos. O dano fica guardado por 2 segundos, e o tick passa por ele antes disso.
+	 */
+	private void trackCombat(ServerPlayer player, PlayerState state) {
+		DamageSource source = player.getLastDamageSource();
+		if (source != null && source.getEntity() instanceof Mob) {
+			state.lastMobHit = now;
+		}
+	}
+
+	private boolean inCombat(PlayerState state) {
+		return state.lastMobHit != NEVER && now - state.lastMobHit < config.combatSeconds * TICKS_PER_SECOND;
 	}
 
 	private void syncScore(ServerPlayer player) {
@@ -641,6 +702,7 @@ public final class ChallengeManager {
 		@Nullable RouletteRun roulette;
 		final Set<String> unavailableItems = new HashSet<>();
 		final Set<String> unavailableMobs = new HashSet<>();
+		int lastMobHit = NEVER;
 
 		PlayerState(ChallengeTimers timers) {
 			this.timers = timers;

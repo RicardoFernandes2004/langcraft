@@ -1,9 +1,11 @@
 package dev.langcraft.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.langcraft.LangCraft;
+import dev.langcraft.challenge.InventoryPicker;
 import dev.langcraft.challenge.Minigame;
 import dev.langcraft.challenge.PlayerTitle;
 import dev.langcraft.challenge.SubjectType;
@@ -12,14 +14,20 @@ import dev.langcraft.data.StudyLanguage;
 import dev.langcraft.net.OpenScreenPayload;
 import dev.langcraft.net.RouletteStartPayload;
 import java.util.List;
+import java.util.function.Predicate;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.Style;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 public final class LangCommand {
@@ -39,21 +47,27 @@ public final class LangCommand {
 		}
 	}
 
-	private record HelpGroup(String key, boolean adminOnly, List<HelpEntry> entries) {
+	private record HelpGroup(String key, Predicate<CommandSourceStack> visible, List<HelpEntry> entries) {
 	}
 
+	private static final Predicate<CommandSourceStack> EVERYONE = source -> true;
+
 	private static final List<HelpGroup> HELP = List.of(
-			new HelpGroup("study", false, List.of(
+			new HelpGroup("study", EVERYONE, List.of(
 					HelpEntry.opens("/lang study", "study"),
 					HelpEntry.opens("/lang words", "words"),
 					HelpEntry.opens("/lang alphabet", "alphabet"),
 					HelpEntry.opens("/lang titles", "titles"))),
-			new HelpGroup("challenges", true, List.of(
+			new HelpGroup("challenges", LangCommand::isAdmin, List.of(
 					HelpEntry.needsMore("/lang challenge", "challenge", "/lang challenge [item|mob] [speak|quiz|hold]"),
 					HelpEntry.needsMore("/lang roulette", "roulette", "/lang roulette [daily|disaster|jackpot]"),
 					HelpEntry.needsMore("/lang on", "on", "/lang on [items|mobs]"),
 					HelpEntry.needsMore("/lang off", "off", "/lang off [items|mobs]"))),
-			new HelpGroup("settings", false, List.of(
+			new HelpGroup("blocking", LangCommand::canBlock, List.of(
+					HelpEntry.opens("/lang block", "block"),
+					HelpEntry.needsMore("/lang unblock", "unblock", "/lang unblock [item]"),
+					HelpEntry.opens("/lang block list", "block_list"))),
+			new HelpGroup("settings", EVERYONE, List.of(
 					HelpEntry.opens("/lang language", "language"),
 					HelpEntry.opens("/lang theme", "theme"),
 					HelpEntry.opens("/lang config", "config"),
@@ -89,6 +103,16 @@ public final class LangCommand {
 						.then(roulette("daily", RouletteStartPayload.Kind.DAILY))
 						.then(roulette("disaster", RouletteStartPayload.Kind.DISASTER))
 						.then(roulette("jackpot", RouletteStartPayload.Kind.JACKPOT)))
+				.then(Commands.literal("block")
+						.requires(LangCommand::canBlock)
+						.executes(context -> block(context.getSource()))
+						.then(Commands.literal("list").executes(context -> listBlocked(context.getSource()))))
+				.then(Commands.literal("unblock")
+						.requires(LangCommand::canBlock)
+						.executes(context -> unblockHand(context.getSource()))
+						.then(Commands.argument("item", StringArgumentType.greedyString())
+								.suggests((context, builder) -> SharedSuggestionProvider.suggest(LangCraft.config.blockedItems, builder))
+								.executes(context -> unblock(context.getSource(), StringArgumentType.getString(context, "item").trim()))))
 				.then(Commands.literal("language")
 						.executes(context -> openScreen(context.getSource(), OpenScreenPayload.Target.LANGUAGE))
 						.then(language("korean", StudyLanguage.KOREAN))
@@ -150,7 +174,7 @@ public final class LangCommand {
 		source.sendSuccess(() -> Component.literal("✦ LangCraft ✦").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
 		for (HelpGroup group : HELP) {
 			// A lista esconde o que a pessoa não pode usar.
-			if (group.adminOnly() && !Commands.LEVEL_GAMEMASTERS.check(source.permissions())) {
+			if (!group.visible().test(source)) {
 				continue;
 			}
 			source.sendSuccess(() -> Component.translatable("langcraft.help.group." + group.key()).withStyle(ChatFormatting.AQUA), false);
@@ -160,6 +184,74 @@ public final class LangCommand {
 		}
 		source.sendSuccess(() -> Component.translatable("langcraft.help.tip").withStyle(ChatFormatting.DARK_GRAY), false);
 		return 1;
+	}
+
+	private static boolean isAdmin(CommandSourceStack source) {
+		return Commands.LEVEL_GAMEMASTERS.check(source.permissions());
+	}
+
+	/** Bloquear vale para todos, então fica com os administradores e com o dono do mundo, mesmo sem cheats. */
+	private static boolean canBlock(CommandSourceStack source) {
+		ServerPlayer player = source.getPlayer();
+		return isAdmin(source) || player != null && source.getServer().isSingleplayerOwner(player.nameAndId());
+	}
+
+	private static int block(CommandSourceStack source) throws CommandSyntaxException {
+		ServerPlayer player = source.getPlayerOrException();
+		ItemStack hand = player.getMainHandItem();
+		if (hand.isEmpty()) {
+			source.sendFailure(Component.translatable("langcraft.command.block_empty_hand"));
+			return 0;
+		}
+		String id = InventoryPicker.idOf(hand.getItem());
+		if (!LangCraft.challenges.blockItem(player, id)) {
+			source.sendFailure(Component.translatable("langcraft.command.already_blocked", itemName(id)));
+			return 0;
+		}
+		source.sendSuccess(() -> Component.translatable("langcraft.command.blocked", itemName(id)), true);
+		return 1;
+	}
+
+	private static int unblockHand(CommandSourceStack source) throws CommandSyntaxException {
+		ItemStack hand = source.getPlayerOrException().getMainHandItem();
+		if (hand.isEmpty()) {
+			source.sendFailure(Component.translatable("langcraft.command.unblock_empty_hand"));
+			return 0;
+		}
+		return unblock(source, InventoryPicker.idOf(hand.getItem()));
+	}
+
+	private static int unblock(CommandSourceStack source, String id) {
+		if (!LangCraft.challenges.unblockItem(id)) {
+			source.sendFailure(Component.translatable("langcraft.command.not_blocked", itemName(id)));
+			return 0;
+		}
+		source.sendSuccess(() -> Component.translatable("langcraft.command.unblocked", itemName(id)), true);
+		return 1;
+	}
+
+	private static int listBlocked(CommandSourceStack source) {
+		List<String> blocked = LangCraft.config.blockedItems;
+		if (blocked.isEmpty()) {
+			source.sendSuccess(() -> Component.translatable("langcraft.command.blocked_none"), false);
+			return 1;
+		}
+		source.sendSuccess(() -> Component.translatable("langcraft.command.blocked_list").withStyle(ChatFormatting.GOLD), false);
+		for (String id : blocked) {
+			Component line = Component.literal(" ").append(itemName(id)).withStyle(Style.EMPTY
+					.withClickEvent(new ClickEvent.SuggestCommand("/lang unblock " + id))
+					.withHoverEvent(new HoverEvent.ShowText(Component.translatable("langcraft.command.click_unblock"))));
+			source.sendSuccess(() -> line, false);
+		}
+		return 1;
+	}
+
+	/** Nome e id, porque o nome de um item com defeito pode estar errado ou faltando. Um item de mod removido mostra só o id. */
+	private static Component itemName(String id) {
+		Identifier parsed = Identifier.tryParse(id);
+		Item item = parsed == null ? null : BuiltInRegistries.ITEM.getOptional(parsed).orElse(null);
+		Component idText = Component.literal(id).withStyle(ChatFormatting.GRAY);
+		return item == null ? idText : Component.translatable(item.getDescriptionId()).append(Component.literal(" (").append(idText).append(")").withStyle(ChatFormatting.GRAY));
 	}
 
 	/** Lista os títulos, marca o atual e diz quanto falta para o próximo. */
