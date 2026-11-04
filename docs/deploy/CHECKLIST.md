@@ -1,6 +1,32 @@
 # Publicação
 
-Passo a passo para publicar no Modrinth e no CurseForge. A publicação é manual e usa a sua conta.
+Passo a passo para publicar no Modrinth e no CurseForge. Depois da primeira configuração, publicar uma versão nova é só criar uma release no GitHub.
+
+## Publicação automática
+
+O workflow `.github/workflows/publish.yml` roda quando uma release é publicada no GitHub. Ele gera os cinco arquivos e envia cada um ao Modrinth, ao CurseForge e à própria release, com as novidades tiradas de `CHANGELOG.md`.
+
+### Configurar uma vez
+
+Em **Settings > Secrets and variables > Actions** do repositório:
+
+| Onde | Nome | Valor |
+|---|---|---|
+| Secrets | `MODRINTH_TOKEN` | Token criado em modrinth.com, em **Settings > PATs**, com a permissão **Create versions** |
+| Secrets | `CURSEFORGE_TOKEN` | Token criado em authors.curseforge.com, em **API tokens** |
+| Variables | `MODRINTH_ID` | Id do projeto no Modrinth, em **⋮ > Copy ID** na página do projeto, ou o endereço `langcraft` |
+| Variables | `CURSEFORGE_ID` | Número em **Project ID**, na lateral da página do projeto no CurseForge |
+
+Um site sem token fica de fora, então dá para começar só com um deles.
+
+### A cada versão
+
+1. Trocar `version` em `gradle.properties` nas duas branches, `main` e `mc/1.20.1`, e enviar as duas.
+2. Escrever a seção `## <versão>` no `CHANGELOG.md` da `main`.
+3. No GitHub, criar uma release com a tag `v<versão>`, como `v1.0.2`, apontando para a `main`, e publicar.
+4. Acompanhar em **Actions**. Se a versão das duas branches não bater com a tag, ou se faltar a seção no changelog, nada é enviado.
+
+Se o envio falhar depois de gerar os arquivos, dá para rodar de novo em **Actions > Publicar > Run workflow**, com a tag da release. Antes, apague o que já tiver subido. O Modrinth recusa um arquivo repetido, e no CurseForge ele apareceria duas vezes.
 
 ## Antes de publicar
 
@@ -12,7 +38,7 @@ Passo a passo para publicar no Modrinth e no CurseForge. A publicação é manua
 
 ## Arquivos
 
-Gere os arquivos de cada versão com `./gradlew build`, na branch indicada.
+Para publicar à mão, gere os arquivos de cada versão com `./gradlew build`, na branch indicada.
 
 | Minecraft | Loader | Branch | Arquivo |
 |---|---|---|---|
