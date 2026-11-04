@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.1
+
+- No pop-ups in the middle of a fight. For 10 seconds after a mob hits you, automatic challenges only ask you to speak, never to click an answer or hold an item. Change the time with `combatSeconds`.
+- Block an item that breaks the challenges, such as one from another mod with a wrong name. Hold it and use `/lang block`. Undo with `/lang unblock`, and see the list with `/lang block list`. Admins can use these commands, and so can the world owner in singleplayer without cheats.
+- The Daily and Jackpot roulettes no longer show slice names on top of each other.
+- Fixed "1 experience levels" in the message for lost levels.
+
 ## 1.0.0
 
 First release, for Minecraft 1.21.11 on Fabric, NeoForge and Forge, and Minecraft 1.20.1 on Fabric and Forge.

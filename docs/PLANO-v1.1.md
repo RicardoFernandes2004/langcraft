@@ -24,3 +24,11 @@ Pontos a resolver antes de implementar:
 - **Licença:** o Piper antigo era MIT e foi arquivado em outubro de 2025. O desenvolvimento seguiu no `piper1-gpl`, sob GPL, e o mod é MIT. Levar o motor dentro do `.jar` exige decidir entre a versão antiga, um processo separado ou outro motor. Cada voz também tem licença própria, a conferir uma a uma.
 - **Tamanho:** as vozes seriam baixadas sob demanda, como os modelos de reconhecimento, com a mesma barra de download. O tamanho e o tempo de geração ainda precisam ser medidos.
 - **Loaders:** o motor nativo tem que abrir no Fabric, no NeoForge e no Forge, em Windows e Linux.
+
+## Bloqueio de palavras
+
+A 1.0.1 já bloqueia itens com `/lang block`, pelo item da mão, e guarda em `blockedItems`. Fica para a 1.1:
+
+- **Mobs:** `blockedMobs` só impede a entrada automática de mobs de outros mods. Falta bloquear qualquer mob, inclusive os que já estão em `mobTiers`, e um jeito de escolher o mob sem saber o id, como o mob para onde o jogador está olhando.
+- **Alternativas erradas:** o popup ainda pode mostrar um item bloqueado como alternativa errada, porque as alternativas são montadas no cliente, que não recebe a lista do servidor.
+- **Desafio em andamento:** bloquear pela palavra do desafio aberto, e não só pelo item da mão. Hoje, o desafio só é cancelado se o item bloqueado for o da pergunta.

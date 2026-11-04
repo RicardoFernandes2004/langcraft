@@ -296,6 +296,8 @@ public final class RouletteScreen extends Screen {
 			String label = String.valueOf(amounts.get(i));
 			if (!payload.effects().isEmpty()) {
 				label = Component.translatable("langcraft.effect." + payload.effects().get(i)).getString();
+				// Na direção do raio, para caber nas fatias estreitas. Do lado esquerdo, gira meia volta para não ficar de cabeça para baixo.
+				graphics.pose().mulPose(Axis.ZP.rotation((float) Math.toRadians(middle <= 180 ? middle - 90 : middle + 90)));
 				graphics.pose().scale(EFFECT_LABEL_SCALE, EFFECT_LABEL_SCALE, 1f);
 			}
 			graphics.drawString(font, label, -font.width(label) / 2, -4, light ? 0xFF14110D : UiTheme.CLASSIC.palette().ink(), !light);

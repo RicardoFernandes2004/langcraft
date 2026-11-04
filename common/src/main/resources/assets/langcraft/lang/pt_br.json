@@ -287,7 +287,7 @@
 	"langcraft.score.shields": "Escudos: %s",
 	"langcraft.message.shielded": "Seu escudo segurou o golpe. Sem castigo desta vez.",
 	"langcraft.message.shield_gained": "Você ganhou um escudo! Agora tem %s.",
-	"langcraft.message.levels_lost": "O erro custou %s níveis de experiência.",
+	"langcraft.message.levels_lost": "O erro custou níveis de experiência: %s.",
 	"langcraft.help.roulette": "abre uma roleta especial",
 	"langcraft.command.no_slices": "Esta roleta está sem fatias na configuração.",
 	"langcraft.effect.spared": "Desta vez você não tinha nada a perder.",
@@ -334,5 +334,18 @@
 	"langcraft.effect.netherite": "Netherita",
 	"langcraft.effect.netherite.desc": "Você ganhou um lingote de netherita!",
 	"langcraft.effect.enchanted_apple": "Maçã encant.",
-	"langcraft.effect.enchanted_apple.desc": "Você ganhou uma maçã dourada encantada!"
+	"langcraft.effect.enchanted_apple.desc": "Você ganhou uma maçã dourada encantada!",
+	"langcraft.help.group.blocking": "Itens bloqueados",
+	"langcraft.help.block": "para de perguntar o item da mão",
+	"langcraft.help.unblock": "libera um item bloqueado",
+	"langcraft.help.block_list": "lista os itens bloqueados",
+	"langcraft.command.block_empty_hand": "Segure o item que você quer bloquear.",
+	"langcraft.command.unblock_empty_hand": "Segure o item que você quer liberar, ou escreva o id dele depois do comando.",
+	"langcraft.command.blocked": "%s não vai mais aparecer nos desafios. Para desfazer, use /lang unblock.",
+	"langcraft.command.already_blocked": "%s já está bloqueado.",
+	"langcraft.command.unblocked": "%s pode voltar a aparecer nos desafios.",
+	"langcraft.command.not_blocked": "%s não está bloqueado.",
+	"langcraft.command.blocked_list": "Itens bloqueados:",
+	"langcraft.command.blocked_none": "Nenhum item está bloqueado.",
+	"langcraft.command.click_unblock": "Clique para liberar"
 }
