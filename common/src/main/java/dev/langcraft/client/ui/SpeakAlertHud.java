@@ -92,7 +92,11 @@ public final class SpeakAlertHud {
 		if (view.minigame == Minigame.HOLD) {
 			return Component.translatable("langcraft.hud.hold");
 		}
-		return Component.translatable(view.type == SubjectType.MOB ? "langcraft.hud.speak_mob" : "langcraft.hud.speak");
+		return Component.translatable(switch (view.type) {
+			case ITEM -> "langcraft.hud.speak";
+			case MOB -> "langcraft.hud.speak_mob";
+			case BIOME -> "langcraft.hud.speak_biome";
+		});
 	}
 
 	private static Component status(ChallengeView view) {

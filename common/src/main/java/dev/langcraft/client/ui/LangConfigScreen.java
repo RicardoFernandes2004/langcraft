@@ -1,11 +1,14 @@
 package dev.langcraft.client.ui;
 
 import dev.langcraft.LangCraft;
+import dev.langcraft.challenge.ChallengeKind;
+import dev.langcraft.client.ClientPreferences;
 import dev.langcraft.client.VoiceSetup;
 import dev.langcraft.client.voice.Microphones;
 import dev.langcraft.client.voice.ModelManager;
 import dev.langcraft.config.LangConfig;
 import dev.langcraft.data.StudyLanguage;
+import dev.langcraft.net.ChallengeTogglePayload;
 import dev.langcraft.net.LanguageChoicePayload;
 import java.util.List;
 import java.util.function.IntConsumer;
@@ -40,7 +43,14 @@ public final class LangConfigScreen extends Screen {
 		list.addHeader(Component.translatable("langcraft.config.general"));
 		list.addRow(themeButton(), languageButton());
 		list.addRow(studyButton(), option(OptionInstance.createBoolean("langcraft.config.scoreboard", config.showScoreboard, value -> config.showScoreboard = value)));
-		list.addRow(option(OptionInstance.createBoolean("langcraft.config.titles", config.showTitles, value -> config.showTitles = value)), null);
+		list.addRow(option(OptionInstance.createBoolean("langcraft.config.titles", config.showTitles, value -> config.showTitles = value)),
+				option(OptionInstance.createBoolean("langcraft.config.tooltip_names", config.showTooltipNames, value -> config.showTooltipNames = value)));
+
+		list.addHeader(Component.translatable("langcraft.config.challenges"));
+		ChallengeKind[] kinds = ChallengeKind.values();
+		for (int i = 0; i < kinds.length; i += 2) {
+			list.addRow(challengeButton(kinds[i]), i + 1 < kinds.length ? challengeButton(kinds[i + 1]) : null);
+		}
 
 		list.addHeader(Component.translatable("langcraft.config.voice"));
 		list.addRow(microphoneButton(config), testButton());
@@ -88,6 +98,19 @@ public final class LangConfigScreen extends Screen {
 	@Override
 	public void onClose() {
 		minecraft.setScreen(parent);
+	}
+
+	/** Cada desafio é ligado ou desligado só para o próprio jogador, e fica salvo no mundo. */
+	private AbstractWidget challengeButton(ChallengeKind kind) {
+		AbstractWidget button = option(OptionInstance.createBoolean("langcraft.challenge." + kind.id(), ClientPreferences.enabled(kind), value -> {
+			ClientPreferences.set(kind, value);
+			LangCraft.platform.sendToServer(new ChallengeTogglePayload(kind.id(), value));
+		}));
+		if (minecraft.player == null || !ClientPreferences.received() || !LangCraft.platform.canSendToServer(ChallengeTogglePayload.TYPE)) {
+			button.active = false;
+			button.setTooltip(Tooltip.create(Component.translatable("langcraft.config.challenges_unavailable")));
+		}
+		return button;
 	}
 
 	private Button themeButton() {

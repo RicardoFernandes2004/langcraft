@@ -8,7 +8,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.client.resources.language.ClientLanguage;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -18,7 +21,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.SpawnEggItem;
 
-/** Nomes de itens e mobs, lidos dos arquivos de idioma do próprio jogo, dos mods instalados e dos jogadores. */
+/** Nomes de itens, mobs e biomas, lidos dos arquivos de idioma do próprio jogo, dos mods instalados e dos jogadores. */
 public final class GameNames {
 	private static final String FALLBACK = "en_us";
 
@@ -59,6 +62,9 @@ public final class GameNames {
 		if (type == SubjectType.ITEM) {
 			return new ItemStack(BuiltInRegistries.ITEM.get(id));
 		}
+		if (type == SubjectType.BIOME) {
+			return new ItemStack(Items.MAP);
+		}
 		SpawnEggItem egg = SpawnEggItem.byId(BuiltInRegistries.ENTITY_TYPE.get(id));
 		return egg == null ? new ItemStack(Items.BARRIER) : new ItemStack(egg);
 	}
@@ -73,6 +79,12 @@ public final class GameNames {
 						translate(language, item.getDescriptionId()).ifPresent(names::add);
 					}
 				}
+			} else if (type == SubjectType.BIOME) {
+				ClientLevel level = Minecraft.getInstance().level;
+				if (level != null) {
+					level.registryAccess().registryOrThrow(Registries.BIOME).keySet()
+							.forEach(biome -> translate(language, biomeKey(biome)).ifPresent(names::add));
+				}
 			} else {
 				for (SpawnEggItem egg : SpawnEggItem.eggs()) {
 					EntityType<?> entityType = egg.getType(null);
@@ -85,19 +97,38 @@ public final class GameNames {
 
 	private static String key(SubjectType type, String subject) {
 		ResourceLocation id = new ResourceLocation(subject);
-		return type == SubjectType.ITEM
-				? BuiltInRegistries.ITEM.get(id).getDescriptionId()
-				: BuiltInRegistries.ENTITY_TYPE.get(id).getDescriptionId();
+		return switch (type) {
+			case ITEM -> BuiltInRegistries.ITEM.get(id).getDescriptionId();
+			case MOB -> BuiltInRegistries.ENTITY_TYPE.get(id).getDescriptionId();
+			case BIOME -> biomeKey(id);
+		};
 	}
 
-	/** O arquivo dos jogadores vem primeiro, para também dar para corrigir uma tradução ruim de um mod. */
+	private static String biomeKey(ResourceLocation id) {
+		return Util.makeDescriptionId("biome", id);
+	}
+
+	/**
+	 * O arquivo dos jogadores vem primeiro, para também dar para corrigir uma tradução ruim de um mod. Um nome com
+	 * defeito conta como sem tradução, e por isso também aparece no {@code /lang missing}.
+	 */
 	private static Optional<String> translate(String language, String key) {
 		Optional<String> community = community(language).translation(key);
 		if (community.isPresent()) {
 			return community;
 		}
 		ClientLanguage loaded = language(language);
-		return loaded.has(key) ? Optional.of(loaded.getOrDefault(key, key)) : Optional.empty();
+		if (!loaded.has(key)) {
+			return Optional.empty();
+		}
+		String name = loaded.getOrDefault(key, key);
+		return NameCheck.isBroken(name, key) ? Optional.empty() : Optional.of(name);
+	}
+
+	/** Verdadeiro se o nome no idioma do jogo, mostrado como significado, está com defeito. */
+	public static boolean nativeNameBroken(SubjectType type, String subject, String studiedLanguage) {
+		String name = nativeName(type, subject, studiedLanguage);
+		return !name.isEmpty() && NameCheck.isBroken(name, key(type, subject));
 	}
 
 	/** Se o nome mostrado vem do arquivo dos jogadores, e não do jogo ou de um mod. */

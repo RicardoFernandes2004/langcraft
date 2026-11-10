@@ -38,9 +38,11 @@ public final class Payloads {
 		toClient(VoiceSetupPayload.TYPE, VoiceSetupPayload.CODEC);
 		toClient(OpenScreenPayload.TYPE, OpenScreenPayload.CODEC);
 		toClient(ScorePayload.TYPE, ScorePayload.CODEC);
+		toClient(PreferencesPayload.TYPE, PreferencesPayload.CODEC);
 		toServer(ChallengeResultPayload.TYPE, ChallengeResultPayload.CODEC, (player, payload) -> LangCraft.challenges.onResult(player, payload));
 		toServer(RouletteSpinPayload.TYPE, RouletteSpinPayload.CODEC, (player, payload) -> LangCraft.challenges.onSpin(player, payload));
 		toServer(LanguageChoicePayload.TYPE, LanguageChoicePayload.CODEC, (player, payload) -> LangCraft.challenges.onLanguageChoice(player, payload));
+		toServer(ChallengeTogglePayload.TYPE, ChallengeTogglePayload.CODEC, (player, payload) -> LangCraft.challenges.onToggle(player, payload));
 		toServer(ClientReadyPayload.TYPE, ClientReadyPayload.CODEC, (player, payload) -> LangCraft.challenges.onClientReady(player));
 	}
 

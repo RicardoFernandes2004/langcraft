@@ -63,7 +63,7 @@ public final class ChallengeClient {
 	public static void onStart(ChallengeStartPayload payload) {
 		Minecraft minecraft = Minecraft.getInstance();
 		Optional<String> word = GameNames.name(payload.language(), payload.subjectType(), payload.subject());
-		if (word.isEmpty()) {
+		if (word.isEmpty() || GameNames.nativeNameBroken(payload.subjectType(), payload.subject(), payload.language())) {
 			respond(payload.id(), ChallengeResultPayload.Result.UNAVAILABLE);
 			return;
 		}
@@ -305,6 +305,8 @@ public final class ChallengeClient {
 		score = null;
 		WorldFlashcards.clear();
 		GameNames.clear();
+		TooltipNames.clear();
+		ClientPreferences.clear();
 	}
 
 	private static void endCurrent() {
