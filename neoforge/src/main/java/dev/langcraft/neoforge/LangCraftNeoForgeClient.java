@@ -6,6 +6,7 @@ import dev.langcraft.client.ui.LangConfigScreen;
 import java.util.function.Consumer;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
@@ -15,9 +16,11 @@ import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
 @Mod(value = LangCraft.MOD_ID, dist = Dist.CLIENT)
 public final class LangCraftNeoForgeClient {
@@ -38,5 +41,12 @@ public final class LangCraftNeoForgeClient {
 		NeoForge.EVENT_BUS.addListener((ClientTickEvent.Post event) -> LangCraftClient.onTick(Minecraft.getInstance()));
 		NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingIn event) -> LangCraftClient.onJoin());
 		NeoForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut event) -> LangCraftClient.onDisconnect(Minecraft.getInstance()));
+		NeoForge.EVENT_BUS.addListener((ScreenEvent.Init.Post event) -> {
+			Button button = LangCraftClient.pauseButton(event.getScreen());
+			if (button != null) {
+				event.addListener(button);
+			}
+		});
+		NeoForge.EVENT_BUS.addListener((ItemTooltipEvent event) -> LangCraftClient.appendTooltip(event.getItemStack(), event.getToolTip()));
 	}
 }

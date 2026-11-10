@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.2
+
+- Two new speaking challenges. Say the name of a biome the first time you enter it, and the name of an item the first time it shows up in your inventory. Items you already have and the biome you are in when you update do not count.
+- Turn each challenge on or off for yourself in the config screen, inside a world.
+- Open the config screen from the pause menu, with the LangCraft button in the top corner.
+- Item tooltips show the name in the languages you study, below the item name. The language your game is in is skipped. Turn it off with "Names in tooltips".
+- `/lang block` now blocks an item only for you. Admins block it for everyone with `/lang admin block`.
+- Names that a mod ships broken, with question marks, unreadable characters or the raw key, are no longer asked, shown as answers or used in tooltips. They show up in `/lang missing` so you can fix them.
+- `/lang challenge biome` asks about the biome you are in.
+
 ## 1.0.1
 
 - No pop-ups in the middle of a fight. For 10 seconds after a mob hits you, automatic challenges only ask you to speak, never to click an answer or hold an item. Change the time with `combatSeconds`.

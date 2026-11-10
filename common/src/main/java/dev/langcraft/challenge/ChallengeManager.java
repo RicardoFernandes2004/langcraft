@@ -6,14 +6,18 @@ import dev.langcraft.data.PlayerProgress;
 import dev.langcraft.net.ChallengeEndedPayload;
 import dev.langcraft.net.ChallengeResultPayload;
 import dev.langcraft.net.ChallengeStartPayload;
+import dev.langcraft.net.ChallengeTogglePayload;
 import dev.langcraft.net.LanguageChoicePayload;
+import dev.langcraft.net.PreferencesPayload;
 import dev.langcraft.net.RouletteResultPayload;
 import dev.langcraft.net.RouletteSpinPayload;
 import dev.langcraft.net.RouletteStartPayload;
 import dev.langcraft.net.ScorePayload;
 import dev.langcraft.net.VoiceSetupPayload;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -30,6 +34,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -44,6 +49,8 @@ public final class ChallengeManager {
 	private static final int SPIN_TICKS = 80;
 	private static final int TICKS_PER_DAY = 24000;
 	private static final int NEVER = Integer.MIN_VALUE;
+	/** De quanto em quanto tempo o bioma e o inventário são conferidos atrás de descobertas. */
+	private static final int DISCOVERY_CHECK_TICKS = TICKS_PER_SECOND;
 
 	private final LangConfig config;
 	private final Map<UUID, PlayerState> states = new HashMap<>();
@@ -68,11 +75,15 @@ public final class ChallengeManager {
 		if (state.active != null || state.roulette != null) {
 			return "langcraft.command.busy";
 		}
-		if (minigame == Minigame.HOLD && holdableItems(player, state).isEmpty() && !InventoryPicker.itemTypes(player, excludedItems(state)).isEmpty()) {
+		if (minigame == Minigame.HOLD && holdableItems(player, state).isEmpty() && !InventoryPicker.itemTypes(player, excludedItems(player, state)).isEmpty()) {
 			return "langcraft.command.hold_needs_other";
 		}
 		if (!start(player, state, type, minigame)) {
-			return type == SubjectType.ITEM ? "langcraft.command.no_items" : "langcraft.command.no_mobs";
+			return switch (type) {
+				case ITEM -> "langcraft.command.no_items";
+				case MOB -> "langcraft.command.no_mobs";
+				case BIOME -> "langcraft.command.no_biome";
+			};
 		}
 		return null;
 	}
@@ -140,6 +151,7 @@ public final class ChallengeManager {
 					PlayerProgress progress = progress(player);
 					LangCraft.platform.send(player, new VoiceSetupPayload(!progress.languageChosen(), progress.language()));
 					syncScore(player);
+					syncPreferences(player);
 				}
 				tickPlayer(player, state);
 			}
@@ -166,8 +178,13 @@ public final class ChallengeManager {
 		if (!state.ready) {
 			return;
 		}
+		if (now % DISCOVERY_CHECK_TICKS == 0 && checkDiscoveries(player, state)) {
+			return;
+		}
 		PlayerProgress progress = progress(player);
-		ChallengeTimers.Due due = state.timers.tick(progress.itemsEnabled(), progress.mobsEnabled(),
+		boolean items = progress.itemsEnabled() && anyTimedAllowed(progress, SubjectType.ITEM);
+		boolean mobs = progress.mobsEnabled() && anyTimedAllowed(progress, SubjectType.MOB);
+		ChallengeTimers.Due due = state.timers.tick(items, mobs,
 				maxTicks(config.itemIntervalMinSeconds, config.itemIntervalMaxSeconds), maxTicks(config.mobIntervalMinSeconds, config.mobIntervalMaxSeconds));
 		switch (due) {
 			case ITEM -> {
@@ -217,21 +234,64 @@ public final class ChallengeManager {
 	}
 
 	private boolean start(ServerPlayer player, PlayerState state, SubjectType type, @Nullable Minigame requested) {
-		return type == SubjectType.ITEM ? startItem(player, state, requested) : startMob(player, state, requested);
+		return switch (type) {
+			case ITEM -> startItem(player, state, requested);
+			case MOB -> startMob(player, state, requested);
+			case BIOME -> startBiome(player, state);
+		};
+	}
+
+	/** Pedido por comando: o bioma onde o jogador está, mesmo que já tenha sido visitado. */
+	private boolean startBiome(ServerPlayer player, PlayerState state) {
+		String biome = currentBiome(player);
+		if (biome == null) {
+			return false;
+		}
+		begin(player, state, ChallengeKind.BIOME, biome, Minigame.SPEAK);
+		return true;
+	}
+
+	/** Os minigames de intervalo que o jogador deixou ligados para o tipo. No combate, só a fala, que não pede clique nem troca de item. */
+	private List<Minigame> allowedMinigames(ServerPlayer player, PlayerState state, SubjectType type) {
+		PlayerProgress progress = progress(player);
+		List<Minigame> allowed = new ArrayList<>();
+		for (Minigame minigame : Minigame.values()) {
+			ChallengeKind kind = ChallengeKind.timed(type, minigame);
+			if (kind != null && progress.allows(kind.id()) && (minigame == Minigame.SPEAK || !inCombat(state))) {
+				allowed.add(minigame);
+			}
+		}
+		return allowed;
+	}
+
+	private static boolean anyTimedAllowed(PlayerProgress progress, SubjectType type) {
+		for (ChallengeKind kind : ChallengeKind.values()) {
+			if (kind.timed() && kind.type() == type && progress.allows(kind.id())) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private boolean startItem(ServerPlayer player, PlayerState state, @Nullable Minigame requested) {
-		List<Item> candidates = InventoryPicker.itemTypes(player, excludedItems(state));
+		List<Item> candidates = InventoryPicker.itemTypes(player, excludedItems(player, state));
 		if (candidates.isEmpty()) {
 			return false;
 		}
-		// No meio do combate, nada que peça clique ou troca de item: só a fala.
-		Minigame minigame = requested != null ? requested : inCombat(state) ? Minigame.SPEAK : Minigame.values()[random.nextInt(Minigame.values().length)];
+		List<Minigame> allowed = requested != null ? List.of(requested) : allowedMinigames(player, state, SubjectType.ITEM);
+		if (allowed.isEmpty()) {
+			return false;
+		}
+		Minigame minigame = allowed.get(random.nextInt(allowed.size()));
 		if (minigame == Minigame.HOLD) {
 			List<Item> holdable = holdableItems(player, state);
 			// Só o sorteio automático troca de minigame. Quem pediu pelo comando recebe o que pediu.
 			if (requested == null && (InventoryPicker.itemTypes(player, Set.of()).size() < 2 || holdable.isEmpty())) {
-				minigame = Minigame.QUIZ;
+				List<Minigame> others = allowed.stream().filter(other -> other != Minigame.HOLD).toList();
+				if (others.isEmpty()) {
+					return false;
+				}
+				minigame = others.get(random.nextInt(others.size()));
 			} else {
 				candidates = holdable;
 			}
@@ -244,39 +304,146 @@ public final class ChallengeManager {
 	/** Itens que podem ser pedidos no Pegue na mão: nunca o que já está na mão. */
 	private List<Item> holdableItems(ServerPlayer player, PlayerState state) {
 		ItemStack hand = player.getMainHandItem();
-		return InventoryPicker.itemTypes(player, excludedItems(state)).stream().filter(item -> !hand.is(item)).toList();
+		return InventoryPicker.itemTypes(player, excludedItems(player, state)).stream().filter(item -> !hand.is(item)).toList();
 	}
 
-	/** Os itens sem nome no idioma, que só valem nesta sessão, e os bloqueados na configuração. */
-	private Set<String> excludedItems(PlayerState state) {
+	/** Os itens sem nome no idioma, que só valem nesta sessão, os bloqueados pelo jogador e os bloqueados para todos. */
+	private Set<String> excludedItems(ServerPlayer player, PlayerState state) {
 		Set<String> excluded = new HashSet<>(state.unavailableItems);
 		excluded.addAll(config.blockedItems);
+		excluded.addAll(progress(player).preferences().blockedItems());
 		return excluded;
 	}
 
-	/**
-	 * Bloqueia um item para todos os jogadores e salva a configuração. Se ele for a palavra do desafio em
-	 * andamento, o desafio é cancelado sem castigo, porque o item pode ser justamente o que trava a tela.
-	 */
+	/** Bloqueia um item só para o jogador. */
 	public boolean blockItem(ServerPlayer player, String id) {
+		PlayerProgress progress = progress(player);
+		if (progress.blocks(id)) {
+			return false;
+		}
+		setProgress(player, progress.withBlocked(id, true));
+		cancelIfAbout(player, id);
+		return true;
+	}
+
+	public boolean unblockItem(ServerPlayer player, String id) {
+		PlayerProgress progress = progress(player);
+		if (!progress.blocks(id)) {
+			return false;
+		}
+		setProgress(player, progress.withBlocked(id, false));
+		return true;
+	}
+
+	/** Bloqueia um item para todos os jogadores e salva a configuração. Só para administradores. */
+	public boolean blockItemForAll(ServerPlayer player, String id) {
 		if (config.blockedItems.contains(id)) {
 			return false;
 		}
 		config.blockedItems.add(id);
 		config.save();
-		PlayerState state = states.get(player.getUUID());
-		if (state != null && state.active != null && state.active.type == SubjectType.ITEM && state.active.subject.equals(id)) {
-			cancel(player);
+		for (ServerPlayer online : player.level().getServer().getPlayerList().getPlayers()) {
+			cancelIfAbout(online, id);
 		}
 		return true;
 	}
 
-	public boolean unblockItem(String id) {
+	public boolean unblockItemForAll(String id) {
 		if (!config.blockedItems.remove(id)) {
 			return false;
 		}
 		config.save();
 		return true;
+	}
+
+	/** Se o item for a palavra do desafio em andamento, cancela sem castigo, porque ele pode ser justamente o que trava a tela. */
+	private void cancelIfAbout(ServerPlayer player, String id) {
+		PlayerState state = states.get(player.getUUID());
+		if (state != null && state.active != null && state.active.type == SubjectType.ITEM && state.active.subject.equals(id)) {
+			cancel(player);
+		}
+	}
+
+	public void onToggle(ServerPlayer player, ChallengeTogglePayload payload) {
+		if (ChallengeKind.byId(payload.challenge()) != null) {
+			setProgress(player, progress(player).withChallenge(payload.challenge(), payload.enabled()));
+			syncPreferences(player);
+		}
+	}
+
+	private void syncPreferences(ServerPlayer player) {
+		if (LangCraft.platform.canSend(player, PreferencesPayload.TYPE)) {
+			LangCraft.platform.send(player, new PreferencesPayload(List.copyOf(progress(player).preferences().disabledChallenges())));
+		}
+	}
+
+	/**
+	 * Bioma novo e item novo no inventário, um por vez e com um intervalo entre eles. Na primeira conferência,
+	 * o que o jogador já tem e o bioma onde ele está entram sem desafio. Retorna verdadeiro se começou um desafio.
+	 */
+	private boolean checkDiscoveries(ServerPlayer player, PlayerState state) {
+		PlayerProgress progress = progress(player);
+		String biome = currentBiome(player);
+		if (!progress.discoveries().started()) {
+			progress = progress.withDiscoveriesStarted(inventoryIds(player));
+			setProgress(player, biome == null ? progress : progress.withVisitedBiome(biome));
+			return false;
+		}
+		if (now < state.nextDiscoveryAt) {
+			return false;
+		}
+		// O /lang off do administrador também vale para as descobertas. O que passa desligado entra sem desafio.
+		boolean biomes = progress.allows(ChallengeKind.BIOME.id()) && (progress.itemsEnabled() || progress.mobsEnabled());
+		boolean items = progress.allows(ChallengeKind.NEW_ITEM.id()) && progress.itemsEnabled();
+		if (biome != null && !progress.discoveries().biomes().contains(biome)) {
+			if (biomes) {
+				return discover(player, state, ChallengeKind.BIOME, biome);
+			}
+			setProgress(player, progress.withVisitedBiome(biome));
+		}
+		Set<String> excluded = excludedItems(player, state);
+		for (String item : inventoryIds(player)) {
+			if (progress(player).discoveries().items().contains(item)) {
+				continue;
+			}
+			if (items && !excluded.contains(item)) {
+				return discover(player, state, ChallengeKind.NEW_ITEM, item);
+			}
+			setProgress(player, progress(player).withSeenItem(item));
+		}
+		return false;
+	}
+
+	private boolean discover(ServerPlayer player, PlayerState state, ChallengeKind kind, String subject) {
+		begin(player, state, kind, subject, null);
+		state.nextDiscoveryAt = now + Math.max(0, config.discoveryCooldownSeconds) * TICKS_PER_SECOND;
+		return true;
+	}
+
+	/** Guarda a descoberta só quando o desafio dela termina, para que um desafio recusado volte mais tarde. */
+	private void markDiscovered(ServerPlayer player, Challenge challenge) {
+		if (challenge.kind == ChallengeKind.BIOME) {
+			setProgress(player, progress(player).withVisitedBiome(challenge.subject));
+		} else if (challenge.kind == ChallengeKind.NEW_ITEM) {
+			setProgress(player, progress(player).withSeenItem(challenge.subject));
+		}
+	}
+
+	private static @Nullable String currentBiome(ServerPlayer player) {
+		String id = player.level().getBiome(player.blockPosition()).getRegisteredName();
+		return id.startsWith("[") ? null : id;
+	}
+
+	private static Set<String> inventoryIds(ServerPlayer player) {
+		Set<String> ids = new LinkedHashSet<>();
+		Inventory inventory = player.getInventory();
+		for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+			ItemStack stack = inventory.getItem(slot);
+			if (!stack.isEmpty()) {
+				ids.add(InventoryPicker.idOf(stack.getItem()));
+			}
+		}
+		return ids;
 	}
 
 	private boolean startMob(ServerPlayer player, PlayerState state, @Nullable Minigame requested) {
@@ -285,8 +452,11 @@ public final class ChallengeManager {
 		if (mob.isEmpty()) {
 			return false;
 		}
-		Minigame minigame = requested != null ? requested : (inCombat(state) || random.nextBoolean() ? Minigame.SPEAK : Minigame.QUIZ);
-		begin(player, state, minigame, SubjectType.MOB, mob.get(), requested);
+		List<Minigame> allowed = requested != null ? List.of(requested) : allowedMinigames(player, state, SubjectType.MOB);
+		if (allowed.isEmpty()) {
+			return false;
+		}
+		begin(player, state, allowed.get(random.nextInt(allowed.size())), SubjectType.MOB, mob.get(), requested);
 		return true;
 	}
 
@@ -302,6 +472,15 @@ public final class ChallengeManager {
 	}
 
 	private void begin(ServerPlayer player, PlayerState state, Minigame minigame, SubjectType type, String subject, @Nullable Minigame requested) {
+		begin(player, state, ChallengeKind.timed(type, minigame), subject, requested, minigame);
+	}
+
+	private void begin(ServerPlayer player, PlayerState state, ChallengeKind kind, String subject, @Nullable Minigame requested) {
+		begin(player, state, kind, subject, requested, kind.minigame());
+	}
+
+	private void begin(ServerPlayer player, PlayerState state, ChallengeKind kind, String subject, @Nullable Minigame requested, Minigame minigame) {
+		SubjectType type = kind.type();
 		int seconds = switch (minigame) {
 			case SPEAK -> config.speakSeconds;
 			case QUIZ -> config.quizSeconds;
@@ -309,7 +488,7 @@ public final class ChallengeManager {
 		};
 		int duration = seconds * TICKS_PER_SECOND;
 		PlayerProgress progress = progress(player);
-		Challenge challenge = new Challenge(nextId++, minigame, type, subject, requested, now + duration);
+		Challenge challenge = new Challenge(nextId++, kind, minigame, type, subject, requested, now + duration);
 		if (minigame == Minigame.HOLD) {
 			ItemStack hand = player.getMainHandItem();
 			challenge.holdRound = new HoldRound<>(challenge.item(), hand.isEmpty() ? null : hand.getItem());
@@ -348,24 +527,39 @@ public final class ChallengeManager {
 			}
 			// O modelo de voz não conhece a palavra. Mantém a palavra sorteada e pergunta de outro jeito.
 			// No combate, o popup não pode aparecer, então tenta de novo daqui a pouco.
+			// As descobertas são só de fala, então uma palavra que não pode ser falada simplesmente passa.
 			case NOT_SPEAKABLE -> {
 				if (challenge.minigame == Minigame.SPEAK && challenge.requested == null) {
 					state.active = null;
-					if (inCombat(state)) {
-						retry(state, challenge.type, NOTHING_TO_ASK_RETRY_TICKS);
-					} else {
+					ChallengeKind quiz = ChallengeKind.timed(challenge.type, Minigame.QUIZ);
+					if (!challenge.kind.timed()) {
+						markDiscovered(player, challenge);
+					} else if (quiz != null && progress(player).allows(quiz.id()) && !inCombat(state)) {
 						begin(player, state, Minigame.QUIZ, challenge.type, challenge.subject, null);
+					} else {
+						retry(state, challenge.type, NOTHING_TO_ASK_RETRY_TICKS);
 					}
 				}
 			}
 			case UNAVAILABLE -> {
-				(challenge.type == SubjectType.ITEM ? state.unavailableItems : state.unavailableMobs).add(challenge.subject);
+				switch (challenge.type) {
+					case ITEM -> state.unavailableItems.add(challenge.subject);
+					case MOB -> state.unavailableMobs.add(challenge.subject);
+					case BIOME -> {
+					}
+				}
 				state.active = null;
-				start(player, state, challenge.type, challenge.requested);
+				if (challenge.kind.timed()) {
+					start(player, state, challenge.type, challenge.requested);
+				} else {
+					markDiscovered(player, challenge);
+				}
 			}
 			case BUSY -> {
 				state.active = null;
-				retry(state, challenge.type, RETRY_DELAY_TICKS);
+				if (challenge.kind.timed()) {
+					retry(state, challenge.type, RETRY_DELAY_TICKS);
+				}
 			}
 		}
 	}
@@ -407,6 +601,7 @@ public final class ChallengeManager {
 
 	private void win(ServerPlayer player, PlayerState state) {
 		Challenge challenge = state.active;
+		markDiscovered(player, challenge);
 		PlayerTitle titleBefore = PlayerTitle.of(progress(player).totalCorrect());
 		PlayerProgress progress = progress(player).afterWin();
 		setProgress(player, progress);
@@ -449,6 +644,7 @@ public final class ChallengeManager {
 	/** O escudo só segura o castigo comum. As roletas de desastre e diária não têm como ser canceladas. */
 	private void expire(ServerPlayer player, PlayerState state) {
 		Challenge challenge = state.active;
+		markDiscovered(player, challenge);
 		PlayerProgress progress = progress(player).afterLoss();
 		setProgress(player, progress);
 		RouletteStartPayload.Kind special = specialPunishment(player, progress);
@@ -703,6 +899,7 @@ public final class ChallengeManager {
 		final Set<String> unavailableItems = new HashSet<>();
 		final Set<String> unavailableMobs = new HashSet<>();
 		int lastMobHit = NEVER;
+		int nextDiscoveryAt;
 
 		PlayerState(ChallengeTimers timers) {
 			this.timers = timers;
@@ -711,6 +908,7 @@ public final class ChallengeManager {
 
 	private static final class Challenge {
 		final int id;
+		final ChallengeKind kind;
 		final Minigame minigame;
 		final SubjectType type;
 		final String subject;
@@ -718,8 +916,9 @@ public final class ChallengeManager {
 		final int deadline;
 		@Nullable HoldRound<Item> holdRound;
 
-		Challenge(int id, Minigame minigame, SubjectType type, String subject, @Nullable Minigame requested, int deadline) {
+		Challenge(int id, ChallengeKind kind, Minigame minigame, SubjectType type, String subject, @Nullable Minigame requested, int deadline) {
 			this.id = id;
+			this.kind = kind;
 			this.minigame = minigame;
 			this.type = type;
 			this.subject = subject;

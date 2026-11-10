@@ -17,7 +17,8 @@ import net.minecraftforge.network.payload.PayloadProtocol;
 
 /** Um canal só, opcional, para que quem não tem o mod consiga entrar no servidor. */
 final class ForgeNetwork {
-	private static final int PROTOCOL_VERSION = 1;
+	/** Sobe a cada pacote novo, porque o canal identifica os pacotes pela ordem. */
+	private static final int PROTOCOL_VERSION = 2;
 	/** O Forge pede o destino de cada pacote já na criação do canal. No servidor este mapa fica vazio e nunca é consultado. */
 	private static final Map<CustomPacketPayload.Type<?>, Consumer<?>> CLIENT_HANDLERS = new ConcurrentHashMap<>();
 	private static Channel<CustomPacketPayload> channel;

@@ -27,7 +27,7 @@ Pontos a resolver antes de implementar:
 
 ## Bloqueio de palavras
 
-A 1.0.1 já bloqueia itens com `/lang block`, pelo item da mão, e guarda em `blockedItems`. Fica para a 1.1:
+A 1.0.2 já bloqueia itens pelo item da mão: `/lang block` só para o jogador, e `/lang admin block` para todos, em `blockedItems`. Fica para a 1.1:
 
 - **Mobs:** `blockedMobs` só impede a entrada automática de mobs de outros mods. Falta bloquear qualquer mob, inclusive os que já estão em `mobTiers`, e um jeito de escolher o mob sem saber o id, como o mob para onde o jogador está olhando.
 - **Alternativas erradas:** o popup ainda pode mostrar um item bloqueado como alternativa errada, porque as alternativas são montadas no cliente, que não recebe a lista do servidor.

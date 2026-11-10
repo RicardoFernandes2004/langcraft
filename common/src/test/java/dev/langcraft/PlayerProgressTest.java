@@ -145,4 +145,36 @@ class PlayerProgressTest {
 		}
 		assertTrue(tracker.tick(true));
 	}
+
+	@Test
+	void preferencesAndDiscoveriesSurviveTheScore() {
+		PlayerProgress progress = PlayerProgress.initial(PlayerProgress.BOTH)
+				.withChallenge("item_quiz", false).withBlocked("zombie:cola", true)
+				.withDiscoveriesStarted(java.util.List.of("minecraft:dirt")).withVisitedBiome("minecraft:plains").withSeenItem("minecraft:apple");
+		progress = progress.afterWin().afterLoss().withShields(1).withLanguage(PlayerProgress.KOREAN).withEnabled(true, false).withLastDailyDay(3);
+		assertFalse(progress.allows("item_quiz"));
+		assertTrue(progress.allows("item_speak"));
+		assertTrue(progress.blocks("zombie:cola"));
+		assertTrue(progress.discoveries().started());
+		assertEquals(java.util.Set.of("minecraft:dirt", "minecraft:apple"), progress.discoveries().items());
+		assertEquals(java.util.Set.of("minecraft:plains"), progress.discoveries().biomes());
+		assertTrue(progress.withChallenge("item_quiz", true).allows("item_quiz"));
+		assertFalse(progress.withBlocked("zombie:cola", false).blocks("zombie:cola"));
+	}
+
+	@Test
+	void codecKeepsTheNewFieldsAndReadsOldSaves() {
+		PlayerProgress progress = PlayerProgress.initial(PlayerProgress.KOREAN).withChallenge("biome", false).withBlocked("zombie:cola", true)
+				.withDiscoveriesStarted(java.util.List.of("minecraft:dirt")).withVisitedBiome("minecraft:desert");
+		com.google.gson.JsonElement json = PlayerProgress.CODEC.encodeStart(com.mojang.serialization.JsonOps.INSTANCE, progress).getOrThrow();
+		PlayerProgress read = PlayerProgress.CODEC.parse(com.mojang.serialization.JsonOps.INSTANCE, json).getOrThrow();
+		assertEquals(progress, read);
+
+		com.google.gson.JsonObject old = com.google.gson.JsonParser.parseString(
+				"{\"language\":\"ko_kr\",\"streak\":2,\"itemsEnabled\":true,\"mobsEnabled\":true}").getAsJsonObject();
+		PlayerProgress fromOld = PlayerProgress.CODEC.parse(com.mojang.serialization.JsonOps.INSTANCE, old).getOrThrow();
+		assertEquals(2, fromOld.streak());
+		assertFalse(fromOld.discoveries().started(), "um mundo antigo comeca a contar as descobertas do zero");
+		assertTrue(fromOld.allows("item_speak"));
+	}
 }

@@ -1,16 +1,20 @@
 package dev.langcraft.client.ui;
 
 import dev.langcraft.LangCraft;
+import dev.langcraft.challenge.ChallengeKind;
+import dev.langcraft.client.ClientPreferences;
 import dev.langcraft.client.VoiceSetup;
 import dev.langcraft.client.voice.Microphones;
 import dev.langcraft.client.voice.ModelManager;
 import dev.langcraft.config.LangConfig;
 import dev.langcraft.data.StudyLanguage;
+import dev.langcraft.net.ChallengeTogglePayload;
 import dev.langcraft.net.LanguageChoicePayload;
 import java.util.List;
 import java.util.function.IntConsumer;
 import net.minecraft.client.OptionInstance;
 import net.minecraft.client.Options;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
@@ -34,7 +38,14 @@ public final class LangConfigScreen extends OptionsSubScreen {
 		list.addSmall(themeButton(), languageButton());
 		list.addSmall(studyButton(),
 				OptionInstance.createBoolean("langcraft.config.scoreboard", config.showScoreboard, value -> config.showScoreboard = value).createButton(minecraft.options));
-		list.addSmall(OptionInstance.createBoolean("langcraft.config.titles", config.showTitles, value -> config.showTitles = value).createButton(minecraft.options), null);
+		list.addSmall(OptionInstance.createBoolean("langcraft.config.titles", config.showTitles, value -> config.showTitles = value).createButton(minecraft.options),
+				OptionInstance.createBoolean("langcraft.config.tooltip_names", config.showTooltipNames, value -> config.showTooltipNames = value).createButton(minecraft.options));
+
+		list.addHeader(Component.translatable("langcraft.config.challenges"));
+		ChallengeKind[] kinds = ChallengeKind.values();
+		for (int i = 0; i < kinds.length; i += 2) {
+			list.addSmall(challengeButton(kinds[i]), i + 1 < kinds.length ? challengeButton(kinds[i + 1]) : null);
+		}
 
 		list.addHeader(Component.translatable("langcraft.config.voice"));
 		list.addSmall(microphoneButton(config), testButton());
@@ -62,6 +73,19 @@ public final class LangConfigScreen extends OptionsSubScreen {
 		list.addSmall(
 				OptionInstance.createBoolean("langcraft.config.reward_enabled", config.rewardRouletteEnabled, value -> config.rewardRouletteEnabled = value),
 				range("langcraft.config.reward_streak", 1, 20, config.rewardStreak, "langcraft.config.wins", value -> config.rewardStreak = value));
+	}
+
+	/** Cada desafio é ligado ou desligado só para o próprio jogador, e fica salvo no mundo. */
+	private AbstractWidget challengeButton(ChallengeKind kind) {
+		AbstractWidget button = OptionInstance.createBoolean("langcraft.challenge." + kind.id(), ClientPreferences.enabled(kind), value -> {
+			ClientPreferences.set(kind, value);
+			LangCraft.platform.sendToServer(new ChallengeTogglePayload(kind.id(), value));
+		}).createButton(minecraft.options);
+		if (minecraft.player == null || !ClientPreferences.received() || !LangCraft.platform.canSendToServer(ChallengeTogglePayload.TYPE)) {
+			button.active = false;
+			button.setTooltip(Tooltip.create(Component.translatable("langcraft.config.challenges_unavailable")));
+		}
+		return button;
 	}
 
 	private Button themeButton() {

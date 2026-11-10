@@ -30,8 +30,17 @@ public class LangConfig {
 	/** Por quantos segundos depois de levar dano de um mob o jogador está em combate. No combate, os desafios automáticos são só de fala. */
 	public int combatSeconds = 10;
 
-	/** Itens que nunca são perguntados, como um item de outro mod com defeito. Exemplo: "botania:manasteel_ingot". */
+	/**
+	 * Itens que nunca são perguntados a ninguém, como um item de outro mod com defeito. Exemplo: "botania:manasteel_ingot".
+	 * Cada jogador também pode bloquear itens só para si, com /lang block.
+	 */
 	public List<String> blockedItems = new ArrayList<>();
+
+	/** Tempo mínimo entre dois desafios de descoberta, de bioma novo ou de item novo. */
+	public int discoveryCooldownSeconds = 60;
+
+	/** No tooltip dos itens, mostra o nome nos idiomas estudados que não são o idioma do jogo. */
+	public boolean showTooltipNames = true;
 
 	/** Similaridade mínima, de 0 a 1, para aceitar uma resposta falada. */
 	public double voiceSimilarity = 0.75;

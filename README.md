@@ -64,7 +64,8 @@ O LangCraft funciona com outros mods sem nenhuma biblioteca de conexão. O ícon
 - **Sem tradução:** o item não é sorteado. `/lang missing` cria `config/langcraft/translations/<idioma>.json` com tudo o que falta nos seus idiomas. Preencha `translation`, à mão ou com um tradutor, e entre de novo no mundo. Esse arquivo tem prioridade, então também serve para corrigir uma tradução ruim, e pode ser compartilhado com outros jogadores. No verso do flashcard, essas palavras aparecem como tradução da comunidade.
 - **Mobs:** mobs de outros mods com ovo de invocação entram sozinhos nas categorias de sorteio, pelo tipo e pela vida. Para tirar um chefe, use `blockedMobs`. Para desligar, use `includeModMobs`.
 - **Fala:** fora do coreano, se o modelo de voz não conhecer uma palavra do nome, o desafio sorteado vira popup. Pedindo por comando, ele continua sendo de fala.
-- **Item com defeito:** segure o item e use `/lang block` para ele não ser mais perguntado. `/lang unblock` desfaz, e `/lang block list` mostra os bloqueados. O bloqueio vale para todos os jogadores e fica em `blockedItems`.
+- **Nome com defeito:** um nome com ponto de interrogação, caractere ilegível, a própria chave no lugar do nome ou texto como `%s` conta como sem tradução. O item não é perguntado, não aparece nas alternativas nem no tooltip, e entra no `/lang missing` para ser corrigido.
+- **Item com defeito:** segure o item e use `/lang block` para ele não ser mais perguntado para você. `/lang unblock` desfaz, e `/lang block list` mostra os bloqueados. Um administrador bloqueia para todos com `/lang admin block`, que fica em `blockedItems`.
 
 ## Minigames
 
@@ -79,6 +80,15 @@ O erro funciona de um jeito diferente em cada minigame:
 - **Alerta de fala:** você pode tentar quantas vezes quiser até o tempo acabar, e cada erro dá um aviso visual. Só o fim do tempo causa punição.
 - **Popup de alternativas:** a primeira alternativa errada já causa a punição, depois de mostrar a certa em verde.
 - **Pegue na mão:** segurar outro item por 1 segundo já causa a punição. A mão vazia e o item que já estava na mão no início não contam.
+
+Além dos intervalos, dois desafios de fala aparecem por descoberta, com pelo menos 60 segundos entre eles (`discoveryCooldownSeconds`):
+
+- **Bioma novo:** na primeira vez que você entra em um bioma, fale o nome dele.
+- **Item novo:** na primeira vez que um item aparece no seu inventário, fale o nome dele.
+
+Na primeira vez que o mod confere, o que você já tem e o bioma onde está entram sem desafio, inclusive em mundos antigos. Se o nome não puder ser falado ou não tiver tradução, a descoberta passa sem desafio. O erro tem as mesmas consequências dos outros desafios.
+
+Cada jogador liga e desliga os desafios para si, na tela de configuração, dentro do mundo: fala, popup e Pegue na mão de item, fala e popup de mob, bioma novo e item novo. O `/lang off` do administrador continua valendo por cima disso.
 
 No combate, os desafios automáticos são só de fala, para nenhum popup ou troca de item atrapalhar a luta. O jogo não tem um estado de combate, então conta como combate ter levado dano de um mob nos últimos 10 segundos (`combatSeconds`). Se a palavra sorteada não puder ser falada, o desafio espera um pouco em vez de virar popup. Os pedidos por comando não mudam.
 
@@ -135,9 +145,10 @@ Clique em uma letra para ver a leitura e uma dica de pronúncia. A barra de cada
 
 A cada entrada no mundo, um aviso no chat lembra a tecla do caderno e o `/lang`, que lista os comandos.
 
-`/lang challenge`, `/lang roulette`, `/lang on` e `/lang off` são só para administradores, com permissão de nível 2. Em um mundo próprio, é preciso estar com os comandos (cheats) ligados. `/lang block` e `/lang unblock` também valem para o dono do mundo próprio, mesmo sem cheats.
+`/lang challenge`, `/lang roulette`, `/lang on`, `/lang off` e `/lang admin` são só para administradores, com permissão de nível 2. Em um mundo próprio, é preciso estar com os comandos (cheats) ligados.
 
 - `/lang challenge [item|mob] [speak|quiz|hold]`: inicia um desafio agora. `segurar` só funciona com `item` e precisa de um item que não esteja na sua mão.
+- `/lang challenge biome`: pergunta o bioma onde você está, mesmo que já tenha sido visitado.
 - `/lang theme`: abre a tela de escolha do tema.
 - `/lang language`: abre a tela de escolha do idioma.
 - `/lang language <korean|japanese|english|german|spanish|both|all>`: escolhe direto. `ambos` é coreano e japonês. Para outra combinação, use a tela.
@@ -148,9 +159,10 @@ A cada entrada no mundo, um aviso no chat lembra a tecla do caderno e o `/lang`,
 - `/lang titles`: lista os títulos e mostra quanto falta para o próximo.
 - `/lang missing`: lista os itens e mobs sem tradução nos seus idiomas e cria o arquivo para preencher.
 - `/lang on [items|mobs]` e `/lang off [items|mobs]`: ligam e desligam os desafios automáticos.
-- `/lang block`: o item da mão não é mais perguntado, para todos os jogadores.
-- `/lang unblock [item]`: libera o item da mão, ou o id escrito. As sugestões mostram os bloqueados.
-- `/lang block list`: lista os itens bloqueados. Clicar em um preenche o comando para liberar.
+- `/lang block`: o item da mão não é mais perguntado para você.
+- `/lang unblock [item]`: libera o item da mão, ou o id escrito. As sugestões mostram os seus bloqueados.
+- `/lang block list`: lista os seus bloqueados e os bloqueados para todos. Clicar em um preenche o comando para liberar.
+- `/lang admin block` e `/lang admin unblock [item]`: o mesmo, mas para todos os jogadores do servidor.
 
 ## Furigana
 
@@ -192,7 +204,7 @@ Digitar em coreano ou japonês exige o teclado desse idioma instalado no sistema
 
 ## Configuração
 
-Com o [Mod Menu](https://modrinth.com/mod/modmenu) instalado, clique em **Mods**, escolha o LangCraft e clique na **engrenagem**. Essa tela troca e testa o microfone e ajusta exigência da fala, furigana, intervalos, tempos e roleta invertida. Tudo é salvo ao fechar. Em um servidor dedicado, os intervalos, os tempos e a roleta seguem o arquivo do servidor.
+Dentro de um mundo, aperte Esc e clique em **LangCraft**, no canto de cima. Com o [Mod Menu](https://modrinth.com/mod/modmenu) instalado, também dá para abrir pela **engrenagem** do LangCraft na lista de mods. Essa tela escolhe os seus desafios, troca e testa o microfone e ajusta exigência da fala, furigana, intervalos, tempos e roleta invertida. Tudo é salvo ao fechar. Em um servidor dedicado, os intervalos, os tempos e a roleta seguem o arquivo do servidor.
 
 O Mod Menu é opcional. Sem ele, ou para ajustes que a tela não mostra, como as chances das roletas e dos mobs, edite `config/langcraft.json` e reinicie o jogo.
 
@@ -202,6 +214,8 @@ O Mod Menu é opcional. Sem ele, ou para ajustes que a tela não mostra, como as
 | `mobIntervalMinSeconds`, `mobIntervalMaxSeconds` | 480, 900 | Intervalo entre desafios de mob |
 | `speakSeconds`, `quizSeconds`, `holdSeconds` | 30, 20, 30 | Tempo de cada minigame |
 | `combatSeconds` | 10 | Por quanto tempo depois de um dano de mob os desafios automáticos são só de fala |
+| `discoveryCooldownSeconds` | 60 | Tempo mínimo entre dois desafios de bioma novo ou item novo |
+| `showTooltipNames` | `true` | Mostra no tooltip dos itens o nome nos idiomas estudados |
 | `microphone` | vazio | Nome do microfone. Vazio usa o padrão do sistema |
 | `voiceSimilarity` | 0.75 | Similaridade mínima para aceitar a fala, de 0 a 1 |
 | `showFurigana` | `true` | Mostra a leitura em hiragana sobre os kanjis |
@@ -224,7 +238,7 @@ O Mod Menu é opcional. Sem ele, ou para ajustes que a tela não mostra, como as
 | `mobTiers` | ver abaixo | Categorias de mob, com chance e lista |
 | `includeModMobs` | `true` | Coloca os mobs de outros mods nas categorias |
 | `blockedMobs` | vazio | Mobs que nunca são sorteados, como `botania:doppleganger` |
-| `blockedItems` | vazio | Itens que nunca são perguntados. `/lang block` preenche com o item da mão |
+| `blockedItems` | vazio | Itens que nunca são perguntados a ninguém. `/lang admin block` preenche com o item da mão |
 
 Chances padrão das roletas de itens: 1 item 15%, 25% da pilha 25%, 50% da pilha 25%, 75% da pilha 20%, pilha inteira 15%.
 
