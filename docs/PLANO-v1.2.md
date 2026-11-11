@@ -1,6 +1,16 @@
-# Plano da v1.1
+# Plano da v1.2
 
-Fica para depois da publicação da 1.0.
+O que ficou para depois da 1.1.
+
+## Precisão da voz
+
+No japonês, uma fala errada às vezes conta como certa. O coreano está bom e não deve mudar. Antes de mexer, é preciso gravar amostras de novo e medir com o `VoiceBenchmarkTest`, porque as gravações antigas se perderam.
+
+Ideias já testadas e deixadas de lado na 1.1, por medo de piorar o reconhecimento sem medir:
+
+- Contar só a escolha principal do Vosk restrito, sem as alternativas e os parciais dele.
+- Colocar na gramática os nomes mais parecidos com a resposta, para o Vosk ter com o que confundir.
+- Exigir a palavra exata em nomes de até 3 letras.
 
 ## Voz nos novos idiomas
 
@@ -27,7 +37,7 @@ Pontos a resolver antes de implementar:
 
 ## Bloqueio de palavras
 
-A 1.0.2 já bloqueia itens pelo item da mão: `/lang block` só para o jogador, e `/lang admin block` para todos, em `blockedItems`. Fica para a 1.1:
+A 1.0.2 já bloqueia itens pelo item da mão: `/lang block` só para o jogador, e `/lang admin block` para todos, em `blockedItems`. Fica para a 1.2:
 
 - **Mobs:** `blockedMobs` só impede a entrada automática de mobs de outros mods. Falta bloquear qualquer mob, inclusive os que já estão em `mobTiers`, e um jeito de escolher o mob sem saber o id, como o mob para onde o jogador está olhando.
 - **Alternativas erradas:** o popup ainda pode mostrar um item bloqueado como alternativa errada, porque as alternativas são montadas no cliente, que não recebe a lista do servidor.

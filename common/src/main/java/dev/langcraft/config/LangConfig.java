@@ -12,7 +12,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /** Lido de {@code config/langcraft.json}. Se o arquivo não existir, é criado com estes padrões. */
 public class LangConfig {
@@ -126,6 +128,17 @@ public class LangConfig {
 			new Roulette.EffectSpec(RouletteEffect.NETHERITE, 2),
 			new Roulette.EffectSpec(RouletteEffect.ENCHANTED_APPLE, 2));
 
+	/** A cada quantos acertos, no total, sai um tesouro: um item do modpack sorteado por raridade. Zero desliga. */
+	public int treasureEvery = 25;
+	/** Peso de cada faixa do tesouro, de comum a mítico. */
+	public Map<String, Integer> treasureChances = defaultTreasureChances();
+	/** Depois de quantos tesouros sem lendário nem mítico um deles vem garantido. A chance já sobe a partir da metade. Zero desliga. */
+	public int treasurePity = 20;
+	/** Sorteia primeiro o mod e depois o item, para um mod com milhares de itens não dominar. */
+	public boolean treasureByMod = true;
+	/** Em quantos tesouros seguidos o mesmo mod não se repete. Zero desliga. */
+	public int treasureModWindow = 3;
+
 	/** Coloca os mobs de outros mods nas categorias abaixo, pelo tipo e pela vida de cada um. */
 	public boolean includeModMobs = true;
 	/** Mobs que nunca são sorteados, como um chefe de outro mod. Exemplo: "botania:doppleganger". */
@@ -145,6 +158,16 @@ public class LangConfig {
 					"minecraft:vindicator", "minecraft:blaze", "minecraft:ravager", "minecraft:piglin_brute",
 					"minecraft:evoker")),
 			new MobPunishment.Tier("extreme", 2, List.of("minecraft:warden")));
+
+	private static Map<String, Integer> defaultTreasureChances() {
+		Map<String, Integer> chances = new LinkedHashMap<>();
+		chances.put("common", 50);
+		chances.put("rare", 30);
+		chances.put("epic", 13);
+		chances.put("legendary", 6);
+		chances.put("mythic", 1);
+		return chances;
+	}
 
 	private static Path path() {
 		return LangCraft.platform.configDir().resolve("langcraft.json");

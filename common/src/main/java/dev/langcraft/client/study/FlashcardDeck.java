@@ -98,6 +98,22 @@ public final class FlashcardDeck {
 		save();
 	}
 
+	/** Uma palavra que chegou sem desafio, como o item de um tesouro. Entra no caderno sem resultado nenhum. */
+	public void discover(String language, String type, String subject, String word, String nativeName) {
+		String key = language + "|" + type + "|" + subject;
+		if (cards.containsKey(key)) {
+			return;
+		}
+		Card card = new Card();
+		card.language = language;
+		card.type = type;
+		card.subject = subject;
+		card.word = word;
+		card.nativeName = nativeName;
+		cards.put(key, card);
+		save();
+	}
+
 	/**
 	 * Marca a resposta do estudo e agenda a próxima revisão. Errar traz a carta de volta ao começo. Acertar
 	 * uma carta que ainda não venceu não adianta o calendário, para uma revisão extra não encurtar o espaçamento.

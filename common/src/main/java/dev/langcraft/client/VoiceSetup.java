@@ -20,6 +20,8 @@ import org.jetbrains.annotations.Nullable;
 /** Conduz tema, idioma, microfone, download e palavra de teste, antes de os desafios começarem. */
 public final class VoiceSetup {
 	private static @Nullable VoiceSetupPayload pending;
+	/** A preparação que começou e ainda não terminou. */
+	private static @Nullable VoiceSetupPayload running;
 	private static List<String> currentLanguages = List.of();
 
 	private VoiceSetup() {
@@ -35,13 +37,21 @@ public final class VoiceSetup {
 		currentLanguages = PlayerProgress.languagesOf(payload.language());
 	}
 
-	/** Espera não haver nenhuma tela aberta: a tela de carregamento do mundo fecharia a nossa. */
+	/**
+	 * Espera não haver nenhuma tela aberta: a tela de carregamento do mundo fecharia a nossa. Se outra tela, como
+	 * a escolha de classe de um modpack, fechar a nossa no meio, a preparação recomeça quando ela sair.
+	 */
 	public static void tick(Minecraft minecraft) {
+		if (running != null && minecraft.screen == null && minecraft.player != null) {
+			pending = running;
+			running = null;
+		}
 		if (pending == null || minecraft.player == null || minecraft.screen != null || ChallengeClient.current() != null) {
 			return;
 		}
 		VoiceSetupPayload setup = pending;
 		pending = null;
+		running = setup;
 		if (WorldFlashcards.themeId() == null) {
 			minecraft.setScreen(new ThemeScreen(() -> begin(minecraft, setup)));
 		} else {
@@ -69,6 +79,8 @@ public final class VoiceSetup {
 	private static void onLanguageChosen(String language) {
 		LangCraft.platform.sendToServer(new LanguageChoicePayload(language));
 		currentLanguages = PlayerProgress.languagesOf(language);
+		// Se a preparação recomeçar daqui, o idioma já foi escolhido.
+		running = new VoiceSetupPayload(false, language);
 		Minecraft minecraft = Minecraft.getInstance();
 		minecraft.setScreen(new MicrophoneScreen(null, microphone -> {
 			LangCraft.config.microphone = microphone;
@@ -96,11 +108,13 @@ public final class VoiceSetup {
 	}
 
 	private static void close() {
+		running = null;
 		Minecraft.getInstance().setScreen(null);
 		LangCraft.platform.sendToServer(new ClientReadyPayload());
 	}
 
 	public static void clear() {
 		pending = null;
+		running = null;
 	}
 }

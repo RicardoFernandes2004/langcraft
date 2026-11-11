@@ -14,6 +14,8 @@ import dev.langcraft.client.study.FlashcardDeck;
 import dev.langcraft.client.study.WorldFlashcards;
 import dev.langcraft.client.ui.NotebookScreen;
 import dev.langcraft.client.ui.RouletteScreen;
+import dev.langcraft.client.ui.StudyFont;
+import dev.langcraft.client.ui.TreasureScreen;
 import dev.langcraft.client.ui.TypeAnswerScreen;
 import dev.langcraft.client.voice.VoiceRecognizer;
 import dev.langcraft.client.voice.VoskGrammar;
@@ -24,6 +26,7 @@ import dev.langcraft.net.ChallengeStartPayload;
 import dev.langcraft.net.RouletteResultPayload;
 import dev.langcraft.net.RouletteStartPayload;
 import dev.langcraft.net.ScorePayload;
+import dev.langcraft.net.TreasurePayload;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
@@ -41,6 +44,7 @@ import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 /** Recebe os desafios do servidor, cuida do estado local e avalia as respostas. */
@@ -205,11 +209,24 @@ public final class ChallengeClient {
 				play(SoundEvents.NOTE_BLOCK_DIDGERIDOO.value(), 0.6f);
 				if (payload.outcome() == ChallengeEndedPayload.Outcome.LOST && view.type == SubjectType.MOB) {
 					minecraft.gui.setTitle(Component.translatable("langcraft.message.mob_title"));
-					minecraft.gui.setSubtitle(Component.translatable("langcraft.message.mob_subtitle", inlineWord(view.word, view.language) + " · " + view.nativeName));
+					minecraft.gui.setSubtitle(Component.translatable("langcraft.message.mob_subtitle", StudyFont.of(inlineWord(view.word, view.language)).append(" · " + view.nativeName)));
 				}
 			}
 			case CANCELLED -> current = null;
 		}
+	}
+
+	/** O item já está no inventário. A tela revela, e o nome entra no caderno como uma palavra nova. */
+	public static void onTreasure(TreasurePayload payload) {
+		String word = GameNames.name(payload.language(), SubjectType.ITEM, payload.item()).orElse(null);
+		String nativeName = GameNames.nativeName(SubjectType.ITEM, payload.item(), payload.language());
+		FlashcardDeck deck = WorldFlashcards.current();
+		if (word != null && deck != null) {
+			deck.discover(payload.language(), SubjectType.ITEM.name(), payload.item(), word, nativeName);
+		}
+		ItemStack stack = GameNames.icon(SubjectType.ITEM, payload.item());
+		stack.setCount(Math.max(1, payload.count()));
+		Minecraft.getInstance().setScreen(new TreasureScreen(payload, stack, word == null ? null : inlineWord(word, payload.language()), nativeName));
 	}
 
 	private static void recordFlashcard(ChallengeView view, boolean won) {
@@ -263,7 +280,7 @@ public final class ChallengeClient {
 
 	private static void showAnswer(Minecraft minecraft, ChallengeView view) {
 		if (minecraft.player != null) {
-			minecraft.player.displayClientMessage(Component.translatable("langcraft.message.answer", inlineWord(view.word, view.language), view.nativeName), false);
+			minecraft.player.displayClientMessage(Component.translatable("langcraft.message.answer", StudyFont.of(inlineWord(view.word, view.language)), view.nativeName), false);
 		}
 	}
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0
+
+- New reward: a treasure every 25 correct answers in total, even with mistakes in between. It gives an item from any installed mod, picked by rarity, from common materials to a boss weapon or an end-game ore. Five tiers, with the chances on screen, and a legendary or mythic item guaranteed after 20 treasures without one. The item name goes into your notebook.
+- Items are ranked automatically by power and by how far into progression they are, reading every recipe, including altars and rituals from magic mods, plus loot, advancements and boss drops. Admins can check and adjust everything in `config/langcraft/treasure.json` and with `/lang admin treasure`.
+- All admin commands moved under `/lang admin`: `/lang admin challenge`, `/lang admin roulette`, `/lang admin on` and `/lang admin off`. The old commands were removed.
+- A punishment roulette won in the middle of a fight now waits until the fight is over to open.
+- Korean and Japanese names that a mod left in English are no longer asked, which also fixes challenges that could not be answered even in English.
+- Names with letters the game font cannot draw are no longer asked.
+
 ## 1.0.2
 
 - Two new speaking challenges. Say the name of a biome the first time you enter it, and the name of an item the first time it shows up in your inventory. Items you already have and the biome you are in when you update do not count.

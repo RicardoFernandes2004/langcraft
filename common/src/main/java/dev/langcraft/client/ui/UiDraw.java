@@ -27,20 +27,21 @@ final class UiDraw {
 		return UiTheme.current().palette();
 	}
 
+	/** Todo texto do mod passa por {@link StudyFont}, para coreano e japonês não saírem na fonte de um modpack. */
 	static void text(GuiGraphics graphics, Font font, Component text, int x, int y, int color) {
-		graphics.drawString(font, text, x, y, color, palette().shadow());
+		graphics.drawString(font, StudyFont.apply(text), x, y, color, palette().shadow());
 	}
 
 	static void text(GuiGraphics graphics, Font font, String text, int x, int y, int color) {
-		graphics.drawString(font, text, x, y, color, palette().shadow());
+		text(graphics, font, Component.literal(text), x, y, color);
 	}
 
 	static void centered(GuiGraphics graphics, Font font, Component text, int centerX, int y, int color) {
-		text(graphics, font, text, centerX - font.width(text) / 2, y, color);
+		text(graphics, font, text, centerX - font.width(StudyFont.apply(text)) / 2, y, color);
 	}
 
 	static void centered(GuiGraphics graphics, Font font, String text, int centerX, int y, int color) {
-		text(graphics, font, text, centerX - font.width(text) / 2, y, color);
+		centered(graphics, font, Component.literal(text), centerX, y, color);
 	}
 
 	static void panel(GuiGraphics graphics, int x, int y, int width, int height) {
@@ -116,9 +117,13 @@ final class UiDraw {
 	}
 
 	static String fit(Font font, String plain, int maxWidth) {
-		if (font.width(plain) <= maxWidth) {
+		if (font.width(StudyFont.of(plain)) <= maxWidth) {
 			return plain;
 		}
-		return font.plainSubstrByWidth(plain, maxWidth - font.width(ELLIPSIS)) + ELLIPSIS;
+		String cut = plain;
+		while (!cut.isEmpty() && font.width(StudyFont.of(cut + ELLIPSIS)) > maxWidth) {
+			cut = cut.substring(0, cut.offsetByCodePoints(cut.length(), -1));
+		}
+		return cut + ELLIPSIS;
 	}
 }

@@ -13,7 +13,11 @@ import dev.langcraft.net.RouletteResultPayload;
 import dev.langcraft.net.RouletteSpinPayload;
 import dev.langcraft.net.RouletteStartPayload;
 import dev.langcraft.net.ScorePayload;
+import dev.langcraft.net.TreasurePayload;
 import dev.langcraft.net.VoiceSetupPayload;
+import dev.langcraft.treasure.TreasureIndex;
+import dev.langcraft.treasure.TreasureService;
+import dev.langcraft.treasure.TreasureTier;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -53,6 +57,7 @@ public final class ChallengeManager {
 	private static final int DISCOVERY_CHECK_TICKS = TICKS_PER_SECOND;
 
 	private final LangConfig config;
+	private final TreasureService treasures;
 	private final Map<UUID, PlayerState> states = new HashMap<>();
 	private final Random random = new Random();
 	private @Nullable Map<String, String> installedModMobs;
@@ -61,6 +66,16 @@ public final class ChallengeManager {
 
 	public ChallengeManager(LangConfig config) {
 		this.config = config;
+		this.treasures = new TreasureService(config);
+	}
+
+	public TreasureService treasures() {
+		return treasures;
+	}
+
+	/** Pedido por comando: abre um tesouro assim que o jogador estiver livre. */
+	public void grantTreasure(ServerPlayer player) {
+		state(player).pendingTreasures++;
 	}
 
 	/** Inicia um desafio pedido por comando. Retorna a chave da mensagem de erro, se não puder começar. */
@@ -143,6 +158,7 @@ public final class ChallengeManager {
 
 	public void onServerTick(MinecraftServer server) {
 		now = server.getTickCount();
+		treasures.prepare(server);
 		for (ServerPlayer player : List.copyOf(server.getPlayerList().getPlayers())) {
 			if (LangCraft.platform.canSend(player, ChallengeStartPayload.TYPE)) {
 				PlayerState state = state(player);
@@ -176,6 +192,9 @@ public final class ChallengeManager {
 			return;
 		}
 		if (!state.ready) {
+			return;
+		}
+		if (state.pendingTreasures > 0 && !inCombat(state) && openTreasure(player, state, true)) {
 			return;
 		}
 		if (now % DISCOVERY_CHECK_TICKS == 0 && checkDiscoveries(player, state)) {
@@ -609,6 +628,9 @@ public final class ChallengeManager {
 			announceTitle(player, title);
 		}
 		player.giveExperiencePoints(Consequences.winExperience(config.winExperience, progress.streak(), challenge.minigame));
+		if (PlayerProgress.milestone(progress.totalCorrect(), config.treasureEvery)) {
+			state.pendingTreasures++;
+		}
 		LangCraft.platform.send(player, new ChallengeEndedPayload(challenge.id, ChallengeEndedPayload.Outcome.WON, progress.streak()));
 		finish(state);
 		if (progress.rewardDue(streakGoal())) {
@@ -722,10 +744,29 @@ public final class ChallengeManager {
 
 	private void openRoulette(ServerPlayer player, PlayerState state, RouletteStartPayload.Kind kind, Item item, ItemStack stack, List<Roulette.Slice> slices) {
 		int autoSpinTicks = config.rouletteAutoSpinSeconds * TICKS_PER_SECOND;
-		RouletteRun run = new RouletteRun(nextId++, kind, item, stack.copy(), slices, List.of(), now + autoSpinTicks);
-		state.roulette = run;
-		LangCraft.platform.send(player, new RouletteStartPayload(run.id, kind, InventoryPicker.idOf(item), stack.getCount(),
+		RouletteRun run = new RouletteRun(nextId++, kind, item, stack.copy(), slices, List.of());
+		present(player, state, run, new RouletteStartPayload(run.id, kind, InventoryPicker.idOf(item), stack.getCount(),
 				slices.stream().map(Roulette.Slice::amount).toList(), slices.stream().map(Roulette.Slice::weight).toList(), autoSpinTicks, List.of()));
+	}
+
+	/**
+	 * A roleta é uma tela e prende o mouse, então no meio do combate ela espera. O resultado já está decidido
+	 * pelo erro: só a tela fica para depois, e sair do jogo enquanto ela espera não escapa dela.
+	 */
+	private void present(ServerPlayer player, PlayerState state, RouletteRun run, RouletteStartPayload payload) {
+		state.roulette = run;
+		run.pending = payload;
+		if (inCombat(state)) {
+			player.sendSystemMessage(Component.translatable("langcraft.message.roulette_after_combat").withStyle(ChatFormatting.GRAY));
+		} else {
+			show(player, run);
+		}
+	}
+
+	private void show(ServerPlayer player, RouletteRun run) {
+		LangCraft.platform.send(player, run.pending);
+		run.autoSpinAt = now + run.pending.autoSpinTicks();
+		run.pending = null;
 	}
 
 	/** Abre uma roleta em que cada fatia é um efeito. Retorna falso se a configuração não deixou nenhuma fatia. */
@@ -747,9 +788,8 @@ public final class ChallengeManager {
 		List<Roulette.Slice> slices = specs.stream().map(spec -> new Roulette.Slice(1, spec.weight())).toList();
 		List<RouletteEffect> effects = specs.stream().map(Roulette.EffectSpec::effect).toList();
 		int autoSpinTicks = config.rouletteAutoSpinSeconds * TICKS_PER_SECOND;
-		RouletteRun run = new RouletteRun(nextId++, kind, icon, new ItemStack(icon), slices, effects, now + autoSpinTicks);
-		state.roulette = run;
-		LangCraft.platform.send(player, new RouletteStartPayload(run.id, kind, InventoryPicker.idOf(icon),
+		RouletteRun run = new RouletteRun(nextId++, kind, icon, new ItemStack(icon), slices, effects);
+		present(player, state, run, new RouletteStartPayload(run.id, kind, InventoryPicker.idOf(icon),
 				kind == RouletteStartPayload.Kind.JACKPOT ? progress.streak() : progress.lossStreak(),
 				slices.stream().map(Roulette.Slice::amount).toList(), slices.stream().map(Roulette.Slice::weight).toList(), autoSpinTicks,
 				effects.stream().map(RouletteEffect::id).toList()));
@@ -758,7 +798,7 @@ public final class ChallengeManager {
 
 	public void onSpin(ServerPlayer player, RouletteSpinPayload payload) {
 		PlayerState state = state(player);
-		if (state.roulette != null && state.roulette.id == payload.id()) {
+		if (state.roulette != null && state.roulette.id == payload.id() && state.roulette.pending == null) {
 			spin(player, state.roulette);
 		}
 	}
@@ -774,6 +814,12 @@ public final class ChallengeManager {
 
 	private void tickRoulette(ServerPlayer player, PlayerState state) {
 		RouletteRun run = state.roulette;
+		if (run.pending != null) {
+			if (!inCombat(state)) {
+				show(player, run);
+			}
+			return;
+		}
 		if (!run.spun()) {
 			if (now >= run.autoSpinAt) {
 				spin(player, run);
@@ -836,10 +882,55 @@ public final class ChallengeManager {
 		}
 	}
 
+	/**
+	 * Abre um tesouro, se a classificação já estiver pronta. O item vai direto para o inventário, e a tela só
+	 * revela. Retorna verdadeiro se a tela abriu, para nenhum desafio começar por cima dela.
+	 */
+	private boolean openTreasure(ServerPlayer player, PlayerState state, boolean show) {
+		TreasureIndex index = treasures.ready();
+		if (index == null) {
+			if (treasures.failed()) {
+				state.pendingTreasures = 0;
+			}
+			return false;
+		}
+		state.pendingTreasures--;
+		PlayerProgress progress = progress(player);
+		TreasureService.Prize prize = treasures.draw(index, progress.treasures(), random);
+		if (prize == null) {
+			player.giveExperienceLevels(config.rewardFallbackLevels);
+			player.sendSystemMessage(Component.translatable("langcraft.message.levels", config.rewardFallbackLevels));
+			return false;
+		}
+		setProgress(player, progress.withTreasures(treasures.after(progress.treasures(), prize)));
+		Item item = BuiltInRegistries.ITEM.get(new ResourceLocation(prize.item()));
+		player.getInventory().placeItemBackInInventory(new ItemStack(item, prize.count()));
+		double total = prize.weights().values().stream().mapToDouble(Double::doubleValue).sum();
+		List<Integer> chances = new ArrayList<>();
+		for (TreasureTier tier : TreasureTier.values()) {
+			chances.add((int) Math.round(100 * prize.weights().getOrDefault(tier, 0.0) / total));
+		}
+		if (show && LangCraft.platform.canSend(player, TreasurePayload.TYPE)) {
+			LangCraft.platform.send(player, new TreasurePayload(prize.item(), prize.count(), prize.tier().id(), chances,
+					(int) Math.round(prize.luck() * 100), resolveLanguage(progress)));
+		}
+		player.sendSystemMessage(Component.translatable("langcraft.message.treasure", Component.translatable("langcraft.treasure.tier." + prize.tier().id()),
+				prize.count(), item.getDescription()).withStyle(style -> style.withColor(prize.tier().color() & 0xFFFFFF)));
+		state.timers.rest(RETRY_DELAY_TICKS);
+		return show;
+	}
+
 	/** Sair durante um desafio cancela, mas sair durante a roleta não escapa do resultado. */
 	public void onPlayerLeft(ServerPlayer player) {
 		PlayerState state = states.remove(player.getUUID());
-		if (state == null || state.roulette == null) {
+		if (state == null) {
+			return;
+		}
+		// Um tesouro ganho não se perde por sair do jogo antes de ele abrir.
+		while (state.pendingTreasures > 0 && treasures.ready() != null) {
+			openTreasure(player, state, false);
+		}
+		if (state.roulette == null) {
 			return;
 		}
 		RouletteRun run = state.roulette;
@@ -899,6 +990,8 @@ public final class ChallengeManager {
 		final Set<String> unavailableMobs = new HashSet<>();
 		int lastMobHit = NEVER;
 		int nextDiscoveryAt;
+		/** Tesouros ganhos que ainda não abriram, porque o jogador estava ocupado ou em combate. */
+		int pendingTreasures;
 
 		PlayerState(ChallengeTimers timers) {
 			this.timers = timers;
@@ -937,18 +1030,19 @@ public final class ChallengeManager {
 		final ItemStack stack;
 		final List<Roulette.Slice> slices;
 		final List<RouletteEffect> effects;
-		final int autoSpinAt;
+		/** A tela que ainda não foi mandada, porque o jogador estava em combate. */
+		@Nullable RouletteStartPayload pending;
+		int autoSpinAt;
 		int sliceIndex = -1;
 		int applyAt;
 
-		RouletteRun(int id, RouletteStartPayload.Kind kind, Item item, ItemStack stack, List<Roulette.Slice> slices, List<RouletteEffect> effects, int autoSpinAt) {
+		RouletteRun(int id, RouletteStartPayload.Kind kind, Item item, ItemStack stack, List<Roulette.Slice> slices, List<RouletteEffect> effects) {
 			this.id = id;
 			this.kind = kind;
 			this.item = item;
 			this.stack = stack;
 			this.slices = slices;
 			this.effects = effects;
-			this.autoSpinAt = autoSpinAt;
 		}
 
 		boolean spun() {

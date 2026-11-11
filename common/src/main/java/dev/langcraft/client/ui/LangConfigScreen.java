@@ -10,6 +10,7 @@ import dev.langcraft.config.LangConfig;
 import dev.langcraft.data.StudyLanguage;
 import dev.langcraft.net.ChallengeTogglePayload;
 import dev.langcraft.net.LanguageChoicePayload;
+import dev.langcraft.treasure.TreasureTier;
 import java.util.List;
 import java.util.function.IntConsumer;
 import net.minecraft.client.OptionInstance;
@@ -79,8 +80,37 @@ public final class LangConfigScreen extends Screen {
 				option(OptionInstance.createBoolean("langcraft.config.reward_enabled", config.rewardRouletteEnabled, value -> config.rewardRouletteEnabled = value)),
 				option(range("langcraft.config.reward_streak", 1, 20, config.rewardStreak, "langcraft.config.wins", value -> config.rewardStreak = value)));
 
+		// No single player, a configuração do jogo é a do servidor. Num servidor, quem ajusta é o admin, com /lang admin treasure.
+		list.addHeader(Component.translatable("langcraft.config.treasure"));
+		list.addRow(
+				serverSetting(range("langcraft.config.treasure_every", 0, 100, config.treasureEvery, "langcraft.config.wins", value -> config.treasureEvery = value)),
+				serverSetting(range("langcraft.config.treasure_pity", 0, 100, config.treasurePity, "langcraft.config.treasures", value -> config.treasurePity = value)));
+		list.addRow(
+				serverSetting(OptionInstance.createBoolean("langcraft.config.treasure_by_mod", config.treasureByMod, value -> config.treasureByMod = value)),
+				serverSetting(range("langcraft.config.treasure_window", 0, 10, config.treasureModWindow, "langcraft.config.treasures", value -> config.treasureModWindow = value)));
+		TreasureTier[] tiers = TreasureTier.values();
+		for (int i = 0; i < tiers.length; i += 2) {
+			list.addRow(chanceSlider(config, tiers[i]), i + 1 < tiers.length ? chanceSlider(config, tiers[i + 1]) : null);
+		}
+
 		addWidget(list);
 		addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> onClose()).bounds(width / 2 - 100, height - 27, 200, 20).build());
+	}
+
+	private AbstractWidget chanceSlider(LangConfig config, TreasureTier tier) {
+		return serverSetting(new OptionInstance<>("langcraft.treasure.tier." + tier.id(), OptionInstance.noTooltip(),
+				(caption, current) -> Options.genericValueLabel(caption, Component.translatable("langcraft.config.weight", current)),
+				new OptionInstance.IntRange(0, 100), Math.max(0, Math.min(100, config.treasureChances.getOrDefault(tier.id(), 0))),
+				value -> config.treasureChances.put(tier.id(), value)));
+	}
+
+	private AbstractWidget serverSetting(OptionInstance<?> option) {
+		AbstractWidget widget = option(option);
+		if (!minecraft.hasSingleplayerServer()) {
+			widget.active = false;
+			widget.setTooltip(Tooltip.create(Component.translatable("langcraft.config.treasure_admin")));
+		}
+		return widget;
 	}
 
 	private AbstractWidget option(OptionInstance<?> option) {

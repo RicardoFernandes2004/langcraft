@@ -59,7 +59,7 @@ O LangCraft funciona com outros mods sem nenhuma biblioteca de conexão. O ícon
 - **Sem tradução:** o item não é sorteado. `/lang missing` cria `config/langcraft/translations/<idioma>.json` com tudo o que falta nos seus idiomas. Preencha `translation`, à mão ou com um tradutor, e entre de novo no mundo. Esse arquivo tem prioridade, então também serve para corrigir uma tradução ruim, e pode ser compartilhado com outros jogadores. No verso do flashcard, essas palavras aparecem como tradução da comunidade.
 - **Mobs:** mobs de outros mods com ovo de invocação entram sozinhos nas categorias de sorteio, pelo tipo e pela vida. Para tirar um chefe, use `blockedMobs`. Para desligar, use `includeModMobs`.
 - **Fala:** fora do coreano, se o modelo de voz não conhecer uma palavra do nome, o desafio sorteado vira popup. Pedindo por comando, ele continua sendo de fala.
-- **Nome com defeito:** um nome com ponto de interrogação, caractere ilegível, a própria chave no lugar do nome ou texto como `%s` conta como sem tradução. O item não é perguntado, não aparece nas alternativas nem no tooltip, e entra no `/lang missing` para ser corrigido.
+- **Nome com defeito:** um nome com ponto de interrogação, caractere ilegível, letra que a fonte do jogo não desenha, a própria chave no lugar do nome ou texto como `%s` conta como sem tradução. No coreano e no japonês, um nome sem nenhuma letra do idioma, que o mod deixou em inglês, também conta. O item não é perguntado, não aparece nas alternativas nem no tooltip, e entra no `/lang missing` para ser corrigido.
 - **Item com defeito:** segure o item e use `/lang block` para ele não ser mais perguntado para você. `/lang unblock` desfaz, e `/lang block list` mostra os bloqueados. Um administrador bloqueia para todos com `/lang admin block`, que fica em `blockedItems`.
 
 ## Minigames
@@ -85,7 +85,7 @@ Na primeira vez que o mod confere, o que você já tem e o bioma onde está entr
 
 Cada jogador liga e desliga os desafios para si, na tela de configuração, dentro do mundo: fala, popup e Pegue na mão de item, fala e popup de mob, bioma novo e item novo. O `/lang off` do administrador continua valendo por cima disso.
 
-No combate, os desafios automáticos são só de fala, para nenhum popup ou troca de item atrapalhar a luta. O jogo não tem um estado de combate, então conta como combate ter levado dano de um mob nos últimos 10 segundos (`combatSeconds`). Se a palavra sorteada não puder ser falada, o desafio espera um pouco em vez de virar popup. Os pedidos por comando não mudam.
+No combate, os desafios automáticos são só de fala, para nenhum popup ou troca de item atrapalhar a luta. O jogo não tem um estado de combate, então conta como combate ter levado dano de um mob nos últimos 10 segundos (`combatSeconds`). Se a palavra sorteada não puder ser falada, o desafio espera um pouco em vez de virar popup. Uma roleta de punição ganha no meio da luta só abre quando o combate acaba, mas o resultado vale do mesmo jeito. Os pedidos por comando não mudam.
 
 - **Desafio de item:** se você perder, uma roleta define quanto da pilha é perdido, de 1 item até a pilha inteira. Uma pilha de 1 item é perdida direto, sem roleta.
 - **Desafio de mob:** se você perder, o mob perguntado nasce em cima de você, de uma galinha até o Warden (2% de chance).
@@ -95,9 +95,39 @@ No combate, os desafios automáticos são só de fala, para nenhum popup ou troc
 - **Roleta invertida:** a cada 5 acertos seguidos, uma roleta dá itens de uma pilha do seu inventário, de +1 até dobrar a pilha, e você ganha um escudo.
 - **Escudos:** cada um cancela o castigo de um erro comum, até um máximo de 3. Eles não seguram as roletas de desastre e diária.
 - **Jackpot:** a cada 15 acertos seguidos, uma roleta com diamantes, níveis, maçãs douradas, efeitos bons, escudos, totem, netherita ou maçã encantada.
+- **Tesouro:** a cada 25 acertos no total, mesmo com erros no meio, sai um item de qualquer mod instalado, sorteado por raridade. Veja abaixo.
 - **Experiência:** cada acerto dá experiência, mais alta com a sequência e em dobro na fala.
 
 Os dois intervalos só contam enquanto você está livre: param durante um desafio, uma roleta, os 30 segundos de espera depois de cada desafio e a preparação da voz, e também com o jogo pausado. Quando um desafio começa, o outro intervalo é afastado, para os dois não virem em sequência. Sem nenhum item no inventário, o mod tenta de novo a cada 10 segundos, em vez de esperar um intervalo inteiro.
+
+## Tesouro
+
+O tesouro sorteia um item do modpack, de um material comum até a arma de um chefe ou um minério do fim do jogo. O item vai direto para o inventário, a tela revela qual foi, e o nome dele entra no caderno como uma palavra nova. No combate, o tesouro espera a luta acabar.
+
+| Faixa | Chance | Quantidade |
+|---|---|---|
+| Comum | 50% | 16 a 32 |
+| Raro | 30% | 8 a 16 |
+| Épico | 13% | 4 a 8 |
+| Lendário | 6% | 1 a 3 |
+| Mítico | 1% | 1 |
+
+Arma, armadura e o que não empilha vêm sempre um. A cada tesouro sem lendário nem mítico, a sorte acumulada sobe. Da metade do limite em diante, a chance dos dois aumenta, e no 20º tesouro um deles vem garantido. Por padrão, o sorteio escolhe primeiro o mod e depois o item, para um mod com milhares de itens não dominar, e o mesmo mod não se repete em 3 tesouros seguidos.
+
+### Como os itens são classificados
+
+Quando o servidor abre, o mod lê todos os itens instalados, fora da thread do jogo, e dá uma nota para cada um:
+
+- **Poder:** dano, armadura e durabilidade comparados à netherita, mais um ponto se o item não queima.
+- **Progressão:** a ferramenta que o minério exige, quantas etapas de receita separam o item dos materiais crus, quanto material ele consome, a profundidade da conquista que pede o item e a vida do mob que o dropa.
+- **Herança:** o item vale pelo menos o ingrediente mais forte da receita mais barata dele. A espada de netherita vale o que vale o lingote.
+- **Raridade:** o bônus da cor que o próprio item declara.
+
+A nota é a maior entre poder e progressão, mais a raridade. As receitas são lidas direto do JSON de todos os tipos, então altares e rituais de mods de magia também entram. Drop de chefe, ou de mob com 200 de vida ou mais, nunca fica abaixo de lendário. As faixas são relativas ao modpack: o 1% de nota mais alta é mítico, os 4% seguintes são lendários, e assim por diante.
+
+Só sai o que dá para conseguir no modo sobrevivência, por alguma receita ou loot. Ovos de mob, itens escondidos das listas de receitas, os bloqueados para todos e as ferramentas do Tinkers, que viriam vazias, ficam de fora.
+
+O resultado fica em `config/langcraft/treasure.json`, com a faixa e o motivo de cada item. Ali o admin troca a faixa de um item em `overrides`, dá pontos a um mod inteiro em `modBonus`, ou proíbe itens e mods em `banned` e `bannedMods`. Esses ajustes nunca são apagados. Depois de editar, use `/lang admin treasure reload`.
 
 ## Títulos
 
@@ -140,10 +170,8 @@ Clique em uma letra para ver a leitura e uma dica de pronúncia. A barra de cada
 
 A cada entrada no mundo, um aviso no chat lembra a tecla do caderno e o `/lang`, que lista os comandos.
 
-`/lang challenge`, `/lang roulette`, `/lang on`, `/lang off` e `/lang admin` são só para administradores, com permissão de nível 2. Em um mundo próprio, é preciso estar com os comandos (cheats) ligados.
+Tudo o que vale para o servidor inteiro fica em `/lang admin`, só para administradores, com permissão de nível 2. Em um mundo próprio, é preciso estar com os comandos (cheats) ligados.
 
-- `/lang challenge [item|mob] [speak|quiz|hold]`: inicia um desafio agora. `segurar` só funciona com `item` e precisa de um item que não esteja na sua mão.
-- `/lang challenge biome`: pergunta o bioma onde você está, mesmo que já tenha sido visitado.
 - `/lang theme`: abre a tela de escolha do tema.
 - `/lang language`: abre a tela de escolha do idioma.
 - `/lang language <korean|japanese|english|german|spanish|both|all>`: escolhe direto. `ambos` é coreano e japonês. Para outra combinação, use a tela.
@@ -153,11 +181,23 @@ A cada entrada no mundo, um aviso no chat lembra a tecla do caderno e o `/lang`,
 - `/lang alphabet`: abre o treino do alfabeto.
 - `/lang titles`: lista os títulos e mostra quanto falta para o próximo.
 - `/lang missing`: lista os itens e mobs sem tradução nos seus idiomas e cria o arquivo para preencher.
-- `/lang on [items|mobs]` e `/lang off [items|mobs]`: ligam e desligam os desafios automáticos.
 - `/lang block`: o item da mão não é mais perguntado para você.
 - `/lang unblock [item]`: libera o item da mão, ou o id escrito. As sugestões mostram os seus bloqueados.
 - `/lang block list`: lista os seus bloqueados e os bloqueados para todos. Clicar em um preenche o comando para liberar.
-- `/lang admin block` e `/lang admin unblock [item]`: o mesmo, mas para todos os jogadores do servidor.
+
+Do admin:
+
+- `/lang admin challenge [item|mob] [speak|quiz|hold]`: inicia um desafio agora. `hold` só funciona com `item` e precisa de um item que não esteja na sua mão.
+- `/lang admin challenge biome`: pergunta o bioma onde você está, mesmo que já tenha sido visitado.
+- `/lang admin roulette [daily|disaster|jackpot]`: abre uma roleta especial.
+- `/lang admin on [items|mobs]` e `/lang admin off [items|mobs]`: ligam e desligam os desafios automáticos.
+- `/lang admin block` e `/lang admin unblock [item]`: bloqueiam e liberam um item para todos os jogadores do servidor.
+- `/lang admin treasure`: mostra os ajustes do tesouro e se a classificação está pronta.
+- `/lang admin treasure every|pity|window <número>`, `bymod <true|false>` e `chance <faixa> <peso>`: mudam os ajustes do tesouro. No single player, a tela de configuração também muda.
+- `/lang admin treasure check`: mostra a faixa, a nota e os motivos do item da mão.
+- `/lang admin treasure list <faixa>`: lista os itens de uma faixa.
+- `/lang admin treasure give`: abre um tesouro agora, para testar.
+- `/lang admin treasure reload`: refaz a classificação, relendo `treasure.json`.
 
 ## Furigana
 
@@ -192,7 +232,7 @@ Digitar em coreano ou japonês exige o teclado desse idioma instalado no sistema
 
 1. Em um mundo de teste, use `/lang language korean`.
 2. Dê a si mesmo um item de nome simples: `/give @s minecraft:stone 8`.
-3. Use `/lang challenge item speak` e espere o alerta mostrar "Ouvindo...".
+3. Use `/lang admin challenge item speak` e espere o alerta mostrar "Ouvindo...".
 4. Fale a palavra do alerta. O alerta mostra "Ouvi: ..." com o que foi entendido.
 5. Se a resposta ficar perto mas não passar, baixe `voiceSimilarity` em `config/langcraft.json`.
 6. Repita com `/lang language japanese`, e com nomes mais longos, como os de ferramentas de diamante.
@@ -234,6 +274,11 @@ O Mod Menu é opcional. Sem ele, ou para ajustes que a tela não mostra, como as
 | `includeModMobs` | `true` | Coloca os mobs de outros mods nas categorias |
 | `blockedMobs` | vazio | Mobs que nunca são sorteados, como `botania:doppleganger` |
 | `blockedItems` | vazio | Itens que nunca são perguntados a ninguém. `/lang admin block` preenche com o item da mão |
+| `treasureEvery` | 25 | A cada quantos acertos, no total, sai um tesouro. Zero desliga |
+| `treasureChances` | 50, 30, 13, 6, 1 | Peso de cada faixa, de comum a mítico |
+| `treasurePity` | 20 | Depois de quantos tesouros sem lendário nem mítico um deles vem garantido. Zero desliga |
+| `treasureByMod` | `true` | Sorteia primeiro o mod e depois o item |
+| `treasureModWindow` | 3 | Em quantos tesouros seguidos o mesmo mod não se repete |
 
 Chances padrão das roletas de itens: 1 item 15%, 25% da pilha 25%, 50% da pilha 25%, 75% da pilha 20%, pilha inteira 15%.
 

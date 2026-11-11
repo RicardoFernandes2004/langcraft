@@ -39,6 +39,7 @@ public final class Payloads {
 		toClient(OpenScreenPayload.TYPE, OpenScreenPayload.CODEC);
 		toClient(ScorePayload.TYPE, ScorePayload.CODEC);
 		toClient(PreferencesPayload.TYPE, PreferencesPayload.CODEC);
+		toClient(TreasurePayload.TYPE, TreasurePayload.CODEC);
 		toServer(ChallengeResultPayload.TYPE, ChallengeResultPayload.CODEC, (player, payload) -> LangCraft.challenges.onResult(player, payload));
 		toServer(RouletteSpinPayload.TYPE, RouletteSpinPayload.CODEC, (player, payload) -> LangCraft.challenges.onSpin(player, payload));
 		toServer(LanguageChoicePayload.TYPE, LanguageChoicePayload.CODEC, (player, payload) -> LangCraft.challenges.onLanguageChoice(player, payload));

@@ -20,9 +20,9 @@ class ThemedButton extends Button {
 		UiTheme.Buttons style = UiTheme.current().buttons();
 		Font font = Minecraft.getInstance().font;
 		String text = UiDraw.fit(font, getMessage(), width - TEXT_MARGIN * 2);
-		int textX = getX() + (width - font.width(text)) / 2;
+		int textX = getX() + (width - font.width(StudyFont.of(text))) / 2;
 		int textY = getY() + (height - font.lineHeight) / 2 + 1;
-		graphics.drawString(font, text, textX, textY, active ? style.ink() : style.disabledInk(), active && style.shadow());
+		graphics.drawString(font, StudyFont.of(text), textX, textY, active ? style.ink() : style.disabledInk(), active && style.shadow());
 	}
 
 	final void renderBackground(GuiGraphics graphics) {
