@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.registries.Registries;
@@ -26,6 +27,7 @@ public final class GameNames {
 	private static final String FALLBACK = "en_us";
 
 	private static final Map<String, ClientLanguage> LANGUAGES = new HashMap<>();
+	private static final Map<String, Set<Integer>> ICONS = new HashMap<>();
 	private static final Map<String, List<String>> ALL_NAMES = new HashMap<>();
 	private static final Map<String, CommunityNames> COMMUNITY = new HashMap<>();
 
@@ -35,6 +37,7 @@ public final class GameNames {
 	/** Limpa o cache. Os idiomas são recarregados na próxima consulta. */
 	public static void clear() {
 		LANGUAGES.clear();
+		ICONS.clear();
 		ALL_NAMES.clear();
 		COMMUNITY.clear();
 	}
@@ -54,7 +57,7 @@ public final class GameNames {
 		}
 		ClientLanguage language = LANGUAGES.computeIfAbsent("native/" + selected, unused ->
 				ClientLanguage.loadFrom(Minecraft.getInstance().getResourceManager(), List.of(FALLBACK, selected), false));
-		return language.getOrDefault(key(type, subject), subject);
+		return NameCheck.clean(language.getOrDefault(key(type, subject), subject), icons("native/" + selected, language));
 	}
 
 	public static ItemStack icon(SubjectType type, String subject) {
@@ -110,7 +113,7 @@ public final class GameNames {
 
 	/**
 	 * O arquivo dos jogadores vem primeiro, para também dar para corrigir uma tradução ruim de um mod. Um nome com
-	 * defeito conta como sem tradução, e por isso também aparece no {@code /lang missing}.
+	 * defeito, ou na escrita errada para o idioma, conta como sem tradução, e por isso também aparece no {@code /lang missing}.
 	 */
 	private static Optional<String> translate(String language, String key) {
 		Optional<String> community = community(language).translation(key);
@@ -122,7 +125,22 @@ public final class GameNames {
 			return Optional.empty();
 		}
 		String name = loaded.getOrDefault(key, key);
-		return NameCheck.isBroken(name, key) ? Optional.empty() : Optional.of(name);
+		String clean = NameCheck.clean(name, icons(language, loaded));
+		return NameCheck.isBroken(clean, key) || !NameCheck.fitsScript(clean, language) ? Optional.empty() : Optional.of(clean);
+	}
+
+	/** Os caracteres que o modpack usa como ícone nos nomes deste idioma, achados olhando todos os itens de uma vez. */
+	private static Set<Integer> icons(String cacheKey, ClientLanguage loaded) {
+		return ICONS.computeIfAbsent(cacheKey, unused -> {
+			List<String> names = new ArrayList<>();
+			for (Item item : BuiltInRegistries.ITEM) {
+				String key = item.getDescriptionId();
+				if (loaded.has(key)) {
+					names.add(loaded.getOrDefault(key, key));
+				}
+			}
+			return NameCheck.iconChars(names);
+		});
 	}
 
 	/** Verdadeiro se o nome no idioma do jogo, mostrado como significado, está com defeito. */

@@ -114,7 +114,7 @@ public class LangCraftClientTest implements FabricClientGameTest {
 			world.getClientWorld().waitForChunksRender();
 			command("difficulty peaceful");
 			command("time set day");
-			command("lang off");
+			command("lang admin off");
 
 			scenario("comandos no chat abrem as telas", this::chatCommands);
 			scenario("capturas de todas as telas em todos os temas", this::themeScreenshots);
@@ -266,7 +266,7 @@ public class LangCraftClientTest implements FabricClientGameTest {
 		command("execute as @p run lang language both");
 		context.waitForScreen(VoiceSetupScreen.class);
 		check(!serverReady(), "durante o download, os desafios esperam");
-		command("execute as @p run lang challenge item speak");
+		command("execute as @p run lang admin challenge item speak");
 		context.waitTicks(2);
 		check(view() == null, "o quiz nao aparece durante o download");
 		waitUntil(() -> ModelManager.phase(PlayerProgress.KOREAN) == ModelManager.Phase.DOWNLOADING || ModelManager.phase(PlayerProgress.JAPANESE) == ModelManager.Phase.DOWNLOADING);
@@ -477,8 +477,8 @@ public class LangCraftClientTest implements FabricClientGameTest {
 		check(currentLanguage().equals(PlayerProgress.JAPANESE), "/lang language japanese escolhe direto");
 		command("clear @p");
 		command("give @p minecraft:stone 8");
-		chat("/lang challenge item quiz");
-		check(context.computeOnClient(mc -> mc.screen instanceof QuizScreen), "/lang challenge continua funcionando pelo chat");
+		chat("/lang admin challenge item quiz");
+		check(context.computeOnClient(mc -> mc.screen instanceof QuizScreen), "/lang admin challenge continua funcionando pelo chat");
 		context.runOnClient(mc -> WorldFlashcards.saveThemeId(before.id()));
 	}
 
@@ -985,10 +985,10 @@ public class LangCraftClientTest implements FabricClientGameTest {
 		check(view() == null, "sem itens nao ha desafio");
 		LangCraft.config.itemIntervalMinSeconds = 1;
 		LangCraft.config.itemIntervalMaxSeconds = 1;
-		command("execute as @p run lang on items");
+		command("execute as @p run lang admin on items");
 		context.waitTicks(40);
 		check(view() == null, "automatico com inventario vazio nao gera desafio");
-		command("execute as @p run lang off");
+		command("execute as @p run lang admin off");
 		LangCraft.config.itemIntervalMinSeconds = FAR_FUTURE_SECONDS;
 		LangCraft.config.itemIntervalMaxSeconds = FAR_FUTURE_SECONDS;
 	}
@@ -1153,7 +1153,7 @@ public class LangCraftClientTest implements FabricClientGameTest {
 
 	private void mobHoldRefused() {
 		command("give @p minecraft:stone 8");
-		command("execute as @p run lang challenge mob hold");
+		command("execute as @p run lang admin challenge mob hold");
 		context.waitTicks(5);
 		check(view() == null, "mob com segurar deve ser recusado");
 	}
@@ -1245,7 +1245,7 @@ public class LangCraftClientTest implements FabricClientGameTest {
 		LangCraft.config.holdSeconds = 3;
 		LangCraft.config.rouletteAutoSpinSeconds = 1;
 		command("gamemode creative @p");
-		command("execute as @p run lang on");
+		command("execute as @p run lang admin on");
 		context.waitFor(mc -> ChallengeClient.current() != null, 800);
 		ChallengeView first = view();
 		check(first != null, "um desafio automatico deve aparecer");
@@ -1258,7 +1258,7 @@ public class LangCraftClientTest implements FabricClientGameTest {
 		check(view() == null, "deve esperar 30 s entre desafios");
 		context.waitFor(mc -> ChallengeClient.current() != null, 600);
 		check(view() != null, "o desafio seguinte deve aparecer depois da espera");
-		command("execute as @p run lang off");
+		command("execute as @p run lang admin off");
 		LangCraft.config.itemIntervalMinSeconds = FAR_FUTURE_SECONDS;
 		LangCraft.config.itemIntervalMaxSeconds = FAR_FUTURE_SECONDS;
 		LangCraft.config.mobIntervalMinSeconds = FAR_FUTURE_SECONDS;
@@ -1444,7 +1444,7 @@ public class LangCraftClientTest implements FabricClientGameTest {
 	}
 
 	private void start(String arguments) {
-		command("execute as @p run lang challenge " + arguments);
+		command("execute as @p run lang admin challenge " + arguments);
 		context.waitTicks(2);
 	}
 

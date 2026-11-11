@@ -27,6 +27,7 @@ public final class Payloads {
 		registrar.toClient(OpenScreenPayload.TYPE, OpenScreenPayload.CODEC);
 		registrar.toClient(ScorePayload.TYPE, ScorePayload.CODEC);
 		registrar.toClient(PreferencesPayload.TYPE, PreferencesPayload.CODEC);
+		registrar.toClient(TreasurePayload.TYPE, TreasurePayload.CODEC);
 		registrar.toServer(ChallengeResultPayload.TYPE, ChallengeResultPayload.CODEC, (player, payload) -> LangCraft.challenges.onResult(player, payload));
 		registrar.toServer(RouletteSpinPayload.TYPE, RouletteSpinPayload.CODEC, (player, payload) -> LangCraft.challenges.onSpin(player, payload));
 		registrar.toServer(LanguageChoicePayload.TYPE, LanguageChoicePayload.CODEC, (player, payload) -> LangCraft.challenges.onLanguageChoice(player, payload));

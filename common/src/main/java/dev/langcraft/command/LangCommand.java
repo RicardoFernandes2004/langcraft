@@ -58,11 +58,12 @@ public final class LangCommand {
 					HelpEntry.opens("/lang words", "words"),
 					HelpEntry.opens("/lang alphabet", "alphabet"),
 					HelpEntry.opens("/lang titles", "titles"))),
-			new HelpGroup("challenges", LangCommand::isAdmin, List.of(
-					HelpEntry.needsMore("/lang challenge", "challenge", "/lang challenge [item|mob|biome] [speak|quiz|hold]"),
-					HelpEntry.needsMore("/lang roulette", "roulette", "/lang roulette [daily|disaster|jackpot]"),
-					HelpEntry.needsMore("/lang on", "on", "/lang on [items|mobs]"),
-					HelpEntry.needsMore("/lang off", "off", "/lang off [items|mobs]"),
+			new HelpGroup("admin", LangCommand::isAdmin, List.of(
+					HelpEntry.needsMore("/lang admin challenge", "challenge", "/lang admin challenge [item|mob|biome] [speak|quiz|hold]"),
+					HelpEntry.needsMore("/lang admin roulette", "roulette", "/lang admin roulette [daily|disaster|jackpot]"),
+					HelpEntry.needsMore("/lang admin on", "on", "/lang admin on [items|mobs]"),
+					HelpEntry.needsMore("/lang admin off", "off", "/lang admin off [items|mobs]"),
+					HelpEntry.needsMore("/lang admin treasure", "treasure", "/lang admin treasure [give|check|list|every|chance|pity|window|bymod|reload]"),
 					HelpEntry.opens("/lang admin block", "admin_block"),
 					HelpEntry.needsMore("/lang admin unblock", "admin_unblock", "/lang admin unblock [item]"))),
 			new HelpGroup("blocking", EVERYONE, List.of(
@@ -81,8 +82,34 @@ public final class LangCommand {
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(Commands.literal("lang")
 				.executes(context -> help(context.getSource()))
+				.then(Commands.literal("block")
+						.executes(context -> block(context.getSource(), false))
+						.then(Commands.literal("list").executes(context -> listBlocked(context.getSource()))))
+				.then(unblockCommand(false))
+				// Tudo o que vale para o servidor inteiro fica atrás do admin, para o jogador comum não mexer sem querer.
+				.then(adminCommand())
+				.then(Commands.literal("language")
+						.executes(context -> openScreen(context.getSource(), OpenScreenPayload.Target.LANGUAGE))
+						.then(language("korean", StudyLanguage.KOREAN))
+						.then(language("japanese", StudyLanguage.JAPANESE))
+						.then(language("english", StudyLanguage.ENGLISH))
+						.then(language("german", StudyLanguage.GERMAN))
+						.then(language("spanish", StudyLanguage.SPANISH))
+						.then(languageChoice("both", PlayerProgress.BOTH, "langcraft.language.both"))
+						.then(languageChoice("all", PlayerProgress.choiceOf(StudyLanguage.codes()), "langcraft.language.all")))
+				.then(Commands.literal("theme").executes(context -> openScreen(context.getSource(), OpenScreenPayload.Target.THEME)))
+				.then(Commands.literal("config").executes(context -> openScreen(context.getSource(), OpenScreenPayload.Target.CONFIG)))
+				.then(Commands.literal("study").executes(context -> openScreen(context.getSource(), OpenScreenPayload.Target.STUDY)))
+				.then(Commands.literal("words").executes(context -> openScreen(context.getSource(), OpenScreenPayload.Target.WORDS)))
+				.then(Commands.literal("alphabet").executes(context -> openScreen(context.getSource(), OpenScreenPayload.Target.ALPHABET)))
+				.then(Commands.literal("titles").executes(context -> titles(context.getSource())))
+				.then(Commands.literal("missing").executes(context -> openScreen(context.getSource(), OpenScreenPayload.Target.EXPORT_MISSING))));
+	}
+
+	private static LiteralArgumentBuilder<CommandSourceStack> adminCommand() {
+		return Commands.literal("admin")
+				.requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
 				.then(Commands.literal("challenge")
-						.requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
 						.executes(context -> challenge(context.getSource(), SubjectType.ITEM, null))
 						.then(minigame("speak", SubjectType.ITEM, Minigame.SPEAK))
 						.then(minigame("quiz", SubjectType.ITEM, Minigame.QUIZ))
@@ -102,37 +129,14 @@ public final class LangCommand {
 								})))
 						.then(Commands.literal("biome").executes(context -> challenge(context.getSource(), SubjectType.BIOME, Minigame.SPEAK))))
 				.then(Commands.literal("roulette")
-						.requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
 						.then(roulette("daily", RouletteStartPayload.Kind.DAILY))
 						.then(roulette("disaster", RouletteStartPayload.Kind.DISASTER))
 						.then(roulette("jackpot", RouletteStartPayload.Kind.JACKPOT)))
-				.then(Commands.literal("block")
-						.executes(context -> block(context.getSource(), false))
-						.then(Commands.literal("list").executes(context -> listBlocked(context.getSource()))))
-				.then(unblockCommand(false))
-				// O bloqueio para todos fica escondido atrás do admin, para o jogador comum não mexer sem querer.
-				.then(Commands.literal("admin")
-						.requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
-						.then(Commands.literal("block").executes(context -> block(context.getSource(), true)))
-						.then(unblockCommand(true)))
-				.then(Commands.literal("language")
-						.executes(context -> openScreen(context.getSource(), OpenScreenPayload.Target.LANGUAGE))
-						.then(language("korean", StudyLanguage.KOREAN))
-						.then(language("japanese", StudyLanguage.JAPANESE))
-						.then(language("english", StudyLanguage.ENGLISH))
-						.then(language("german", StudyLanguage.GERMAN))
-						.then(language("spanish", StudyLanguage.SPANISH))
-						.then(languageChoice("both", PlayerProgress.BOTH, "langcraft.language.both"))
-						.then(languageChoice("all", PlayerProgress.choiceOf(StudyLanguage.codes()), "langcraft.language.all")))
-				.then(Commands.literal("theme").executes(context -> openScreen(context.getSource(), OpenScreenPayload.Target.THEME)))
-				.then(Commands.literal("config").executes(context -> openScreen(context.getSource(), OpenScreenPayload.Target.CONFIG)))
-				.then(Commands.literal("study").executes(context -> openScreen(context.getSource(), OpenScreenPayload.Target.STUDY)))
-				.then(Commands.literal("words").executes(context -> openScreen(context.getSource(), OpenScreenPayload.Target.WORDS)))
-				.then(Commands.literal("alphabet").executes(context -> openScreen(context.getSource(), OpenScreenPayload.Target.ALPHABET)))
-				.then(Commands.literal("titles").executes(context -> titles(context.getSource())))
-				.then(Commands.literal("missing").executes(context -> openScreen(context.getSource(), OpenScreenPayload.Target.EXPORT_MISSING)))
 				.then(toggle("on", true))
-				.then(toggle("off", false)));
+				.then(toggle("off", false))
+				.then(Commands.literal("block").executes(context -> block(context.getSource(), true)))
+				.then(unblockCommand(true))
+				.then(TreasureCommand.build());
 	}
 
 	private static LiteralArgumentBuilder<CommandSourceStack> minigame(String name, SubjectType type, Minigame minigame) {
@@ -166,7 +170,6 @@ public final class LangCommand {
 
 	private static LiteralArgumentBuilder<CommandSourceStack> toggle(String name, boolean enabled) {
 		return Commands.literal(name)
-				.requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
 				.executes(context -> setEnabled(context.getSource(), Target.ALL, enabled))
 				.then(Commands.literal("items").executes(context -> setEnabled(context.getSource(), Target.ITEMS, enabled)))
 				.then(Commands.literal("mobs").executes(context -> setEnabled(context.getSource(), Target.MOBS, enabled)));

@@ -105,7 +105,7 @@ public final class SpeakAlertHud {
 			return Component.translatable("langcraft.hud.hold_warning");
 		}
 		if (view.heard != null) {
-			return Component.translatable("langcraft.hud.heard", view.heard);
+			return Component.translatable("langcraft.hud.heard", StudyFont.of(view.heard));
 		}
 		return view.voice == null ? null : voiceStatus(view.voice);
 	}

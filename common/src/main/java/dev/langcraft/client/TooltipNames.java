@@ -4,6 +4,7 @@ import dev.langcraft.LangCraft;
 import dev.langcraft.challenge.SubjectType;
 import dev.langcraft.client.lang.Furigana;
 import dev.langcraft.client.lang.GameNames;
+import dev.langcraft.client.ui.StudyFont;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +41,7 @@ public final class TooltipNames {
 			Optional<String> name = CACHE.computeIfAbsent(language + "|" + subject, unused -> GameNames.name(language, SubjectType.ITEM, subject)
 					.map(word -> LangCraft.config.showFurigana ? Furigana.inline(word, language) : word));
 			if (name.isPresent()) {
-				lines.add(line++, Component.translatable("langcraft.tooltip.name", Component.translatable("langcraft.language." + language), name.get())
+				lines.add(line++, Component.translatable("langcraft.tooltip.name", Component.translatable("langcraft.language." + language), StudyFont.of(name.get()))
 						.withStyle(ChatFormatting.GRAY));
 			}
 		}

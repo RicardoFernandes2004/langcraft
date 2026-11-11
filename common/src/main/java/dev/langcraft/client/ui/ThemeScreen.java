@@ -144,12 +144,12 @@ public final class ThemeScreen extends Screen {
 		UiTheme theme = UiTheme.current();
 		UiTheme.Buttons buttons = theme.buttons();
 		theme.drawButton(graphics, x + PADDING, y + 94, buttonWidth, 18, true, false);
-		graphics.drawString(font, "조약돌", x + PADDING + (buttonWidth - font.width("조약돌")) / 2, y + 99, buttons.ink(), buttons.shadow());
+		graphics.drawString(font, StudyFont.of("조약돌"), x + PADDING + (buttonWidth - font.width(StudyFont.of("조약돌"))) / 2, y + 99, buttons.ink(), buttons.shadow());
 		int offX = right - buttonWidth;
 		theme.drawButton(graphics, offX, y + 94, buttonWidth, 18, false, false);
 		int wrongWidth = font.width("화강암");
 		int wrongX = offX + (buttonWidth - wrongWidth) / 2;
-		graphics.drawString(font, "화강암", wrongX, y + 99, buttons.wrongInk(), false);
+		graphics.drawString(font, StudyFont.of("화강암"), wrongX, y + 99, buttons.wrongInk(), false);
 		graphics.fill(wrongX - 2, y + 103, wrongX + wrongWidth + 2, y + 104, buttons.wrongInk());
 
 		UiDraw.text(graphics, font, Component.translatable("langcraft.theme.wheel"), x + PADDING, y + 118, palette.muted());

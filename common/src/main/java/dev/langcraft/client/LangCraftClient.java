@@ -14,6 +14,7 @@ import dev.langcraft.net.PreferencesPayload;
 import dev.langcraft.net.RouletteResultPayload;
 import dev.langcraft.net.RouletteStartPayload;
 import dev.langcraft.net.ScorePayload;
+import dev.langcraft.net.TreasurePayload;
 import dev.langcraft.net.VoiceSetupPayload;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -69,6 +70,7 @@ public final class LangCraftClient {
 		receivers.receive(OpenScreenPayload.TYPE, ScreenRequests::onRequest);
 		receivers.receive(ScorePayload.TYPE, ChallengeClient::onScore);
 		receivers.receive(PreferencesPayload.TYPE, ClientPreferences::onSync);
+		receivers.receive(TreasurePayload.TYPE, ChallengeClient::onTreasure);
 	}
 
 	/** O botão da configuração no canto do menu do Esc. O loader coloca na tela. */

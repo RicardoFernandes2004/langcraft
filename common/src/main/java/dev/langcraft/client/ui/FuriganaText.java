@@ -5,7 +5,7 @@ import java.util.List;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 
-/** Desenha um texto com a leitura pequena sobre os kanjis. */
+/** Desenha um texto com a leitura pequena sobre os kanjis, na fonte de {@link StudyFont}. */
 final class FuriganaText {
 	private static final float READING_RATIO = 0.5f;
 	/** Em uma palavra pequena, metade do tamanho deixaria a leitura ilegível. */
@@ -43,9 +43,9 @@ final class FuriganaText {
 		float readingScale = readingScale(scale);
 		for (Furigana.Segment segment : segments) {
 			float width = segmentWidth(font, segment, scale);
-			drawScaled(graphics, font, segment.text(), cursor + (width - font.width(segment.text()) * scale) / 2, textY, scale, color, shadow);
+			drawScaled(graphics, font, segment.text(), cursor + (width - font.width(StudyFont.of(segment.text())) * scale) / 2, textY, scale, color, shadow);
 			if (segment.reading() != null) {
-				drawScaled(graphics, font, segment.reading(), cursor + (width - font.width(segment.reading()) * readingScale) / 2, y, readingScale, color, false);
+				drawScaled(graphics, font, segment.reading(), cursor + (width - font.width(StudyFont.of(segment.reading())) * readingScale) / 2, y, readingScale, color, false);
 			}
 			cursor += width;
 		}
@@ -53,15 +53,15 @@ final class FuriganaText {
 
 	/** Se a leitura for mais larga que o kanji, o trecho inteiro alarga para não encostar no vizinho. */
 	private static float segmentWidth(Font font, Furigana.Segment segment, float scale) {
-		float textWidth = font.width(segment.text()) * scale;
-		return segment.reading() == null ? textWidth : Math.max(textWidth, font.width(segment.reading()) * readingScale(scale));
+		float textWidth = font.width(StudyFont.of(segment.text())) * scale;
+		return segment.reading() == null ? textWidth : Math.max(textWidth, font.width(StudyFont.of(segment.reading())) * readingScale(scale));
 	}
 
 	private static void drawScaled(GuiGraphics graphics, Font font, String text, float x, float y, float scale, int color, boolean shadow) {
 		graphics.pose().pushMatrix();
 		graphics.pose().translate(x, y);
 		graphics.pose().scale(scale, scale);
-		graphics.drawString(font, text, 0, 0, color, shadow);
+		graphics.drawString(font, StudyFont.of(text), 0, 0, color, shadow);
 		graphics.pose().popMatrix();
 	}
 }

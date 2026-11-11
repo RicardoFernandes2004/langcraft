@@ -11,7 +11,7 @@ import java.util.Set;
 
 /** Idioma, placar e preferências, salvos por jogador. */
 public record PlayerProgress(String language, int streak, boolean itemsEnabled, boolean mobsEnabled, boolean languageChosen, int bestStreak, int totalCorrect, int totalWrong,
-		int lossStreak, int lastDailyDay, int shields, Preferences preferences, Discoveries discoveries) {
+		int lossStreak, int lastDailyDay, int shields, Preferences preferences, Discoveries discoveries, Treasures treasures) {
 	public static final String KOREAN = "ko_kr";
 	public static final String JAPANESE = "ja_jp";
 	public static final String ENGLISH = "en_us";
@@ -47,6 +47,15 @@ public record PlayerProgress(String language, int streak, boolean itemsEnabled, 
 		).apply(instance, Discoveries::new));
 	}
 
+	/** Quantos tesouros saíram sem lendário nem mítico, e os mods dos últimos tesouros. */
+	public record Treasures(int sinceTop, List<String> recentMods) {
+		public static final Treasures EMPTY = new Treasures(0, List.of());
+		static final Codec<Treasures> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+				Codec.INT.optionalFieldOf("sinceTop", 0).forGetter(Treasures::sinceTop),
+				Codec.STRING.listOf().optionalFieldOf("recentMods", List.of()).forGetter(Treasures::recentMods)
+		).apply(instance, Treasures::new));
+	}
+
 	public static final Codec<PlayerProgress> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 			Codec.STRING.fieldOf("language").forGetter(PlayerProgress::language),
 			Codec.INT.fieldOf("streak").forGetter(PlayerProgress::streak),
@@ -60,11 +69,12 @@ public record PlayerProgress(String language, int streak, boolean itemsEnabled, 
 			Codec.INT.optionalFieldOf("lastDailyDay", NO_DAILY_YET).forGetter(PlayerProgress::lastDailyDay),
 			Codec.INT.optionalFieldOf("shields", 0).forGetter(PlayerProgress::shields),
 			Preferences.CODEC.optionalFieldOf("preferences", Preferences.EMPTY).forGetter(PlayerProgress::preferences),
-			Discoveries.CODEC.optionalFieldOf("discoveries", Discoveries.EMPTY).forGetter(PlayerProgress::discoveries)
+			Discoveries.CODEC.optionalFieldOf("discoveries", Discoveries.EMPTY).forGetter(PlayerProgress::discoveries),
+			Treasures.CODEC.optionalFieldOf("treasures", Treasures.EMPTY).forGetter(PlayerProgress::treasures)
 	).apply(instance, PlayerProgress::new));
 
 	public static PlayerProgress initial(String language) {
-		return new PlayerProgress(language, 0, true, true, false, 0, 0, 0, 0, NO_DAILY_YET, 0, Preferences.EMPTY, Discoveries.EMPTY);
+		return new PlayerProgress(language, 0, true, true, false, 0, 0, 0, 0, NO_DAILY_YET, 0, Preferences.EMPTY, Discoveries.EMPTY, Treasures.EMPTY);
 	}
 
 	public static boolean isValidLanguage(String choice) {
@@ -98,12 +108,12 @@ public record PlayerProgress(String language, int streak, boolean itemsEnabled, 
 	public PlayerProgress afterWin() {
 		int newStreak = streak + 1;
 		return new PlayerProgress(language, newStreak, itemsEnabled, mobsEnabled, languageChosen, Math.max(bestStreak, newStreak), totalCorrect + 1, totalWrong, 0, lastDailyDay, shields,
-				preferences, discoveries);
+				preferences, discoveries, treasures);
 	}
 
 	public PlayerProgress afterLoss() {
 		return new PlayerProgress(language, 0, itemsEnabled, mobsEnabled, languageChosen, bestStreak, totalCorrect, totalWrong + 1, lossStreak + 1, lastDailyDay, shields,
-				preferences, discoveries);
+				preferences, discoveries, treasures);
 	}
 
 	public boolean rewardDue(int goal) {
@@ -128,20 +138,20 @@ public record PlayerProgress(String language, int streak, boolean itemsEnabled, 
 	}
 
 	public PlayerProgress withLanguage(String newLanguage) {
-		return new PlayerProgress(newLanguage, streak, itemsEnabled, mobsEnabled, true, bestStreak, totalCorrect, totalWrong, lossStreak, lastDailyDay, shields, preferences, discoveries);
+		return new PlayerProgress(newLanguage, streak, itemsEnabled, mobsEnabled, true, bestStreak, totalCorrect, totalWrong, lossStreak, lastDailyDay, shields, preferences, discoveries, treasures);
 	}
 
 	public PlayerProgress withEnabled(boolean items, boolean mobs) {
-		return new PlayerProgress(language, streak, items, mobs, languageChosen, bestStreak, totalCorrect, totalWrong, lossStreak, lastDailyDay, shields, preferences, discoveries);
+		return new PlayerProgress(language, streak, items, mobs, languageChosen, bestStreak, totalCorrect, totalWrong, lossStreak, lastDailyDay, shields, preferences, discoveries, treasures);
 	}
 
 	public PlayerProgress withLastDailyDay(int day) {
-		return new PlayerProgress(language, streak, itemsEnabled, mobsEnabled, languageChosen, bestStreak, totalCorrect, totalWrong, lossStreak, day, shields, preferences, discoveries);
+		return new PlayerProgress(language, streak, itemsEnabled, mobsEnabled, languageChosen, bestStreak, totalCorrect, totalWrong, lossStreak, day, shields, preferences, discoveries, treasures);
 	}
 
 	public PlayerProgress withShields(int count) {
 		return new PlayerProgress(language, streak, itemsEnabled, mobsEnabled, languageChosen, bestStreak, totalCorrect, totalWrong, lossStreak, lastDailyDay, Math.max(0, count),
-				preferences, discoveries);
+				preferences, discoveries, treasures);
 	}
 
 	public PlayerProgress withChallenge(String challengeId, boolean enabled) {
@@ -183,13 +193,18 @@ public record PlayerProgress(String language, int streak, boolean itemsEnabled, 
 		return withDiscoveries(new Discoveries(discoveries.started(), discoveries.items(), biomes));
 	}
 
+	public PlayerProgress withTreasures(Treasures newTreasures) {
+		return new PlayerProgress(language, streak, itemsEnabled, mobsEnabled, languageChosen, bestStreak, totalCorrect, totalWrong, lossStreak, lastDailyDay, shields,
+				preferences, discoveries, newTreasures);
+	}
+
 	private PlayerProgress withPreferences(Preferences newPreferences) {
 		return new PlayerProgress(language, streak, itemsEnabled, mobsEnabled, languageChosen, bestStreak, totalCorrect, totalWrong, lossStreak, lastDailyDay, shields,
-				newPreferences, discoveries);
+				newPreferences, discoveries, treasures);
 	}
 
 	private PlayerProgress withDiscoveries(Discoveries newDiscoveries) {
 		return new PlayerProgress(language, streak, itemsEnabled, mobsEnabled, languageChosen, bestStreak, totalCorrect, totalWrong, lossStreak, lastDailyDay, shields,
-				preferences, newDiscoveries);
+				preferences, newDiscoveries, treasures);
 	}
 }

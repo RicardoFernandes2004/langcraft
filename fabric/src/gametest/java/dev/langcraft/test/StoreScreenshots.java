@@ -243,7 +243,7 @@ public class StoreScreenshots implements FabricClientGameTest {
 
 	private void openRoulette(String kind) {
 		clearChat();
-		command("execute as @p run lang roulette " + kind);
+		command("execute as @p run lang admin roulette " + kind);
 		context.waitForScreen(RouletteScreen.class);
 		context.waitTicks(4);
 	}
@@ -349,7 +349,7 @@ public class StoreScreenshots implements FabricClientGameTest {
 	}
 
 	private void start(String arguments) {
-		command("execute as @p run lang challenge " + arguments);
+		command("execute as @p run lang admin challenge " + arguments);
 		context.waitTicks(2);
 	}
 
